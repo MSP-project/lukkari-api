@@ -67,10 +67,16 @@ export class AaltoApi {
     const courseEvents = [];
     const splittedData = data.split('\n');
     console.log('_parseCourseEvents - splittedData', splittedData);
-    // eg. "Midterm exam" or "Exercises"
-    const courseEventLabel = splittedData[1].split(' ')[0].trim();
-    // eg. "midtermexam" or "exercises"
-    const courseEventType = courseEventLabel.toLowerCase().replace(/ /g, '');
+
+    /* eslint-disable */
+    // eg. "midtermexam" or "exercise"
+    const courseEventType = splittedData[1]
+    .toLowerCase()
+    .replace(/ /g, '')
+    .replace(/teacher/g, '')
+    .replace(/exercises/g, 'exercise');
+    /* eslint-enable */
+
     console.log('_parseCourseEvents - courseEventType', courseEventType);
 
     /* eslint-disable */
@@ -82,13 +88,13 @@ export class AaltoApi {
     splittedData.forEach((dataPiece, idx) => {
       // Skip Midterm exam since it is not handled properly yet
       if (courseEventType !== 'midtermexam') {
+        let isEvent = true;
+
         // Init new event
         const courseEvent = {
           type: courseEventType,
-          isValid: true,  // validity is needed when attaching location info
         };
 
-        console.log('dataPiece:', dataPiece);
         /*
          * Test if event has single or ranged date
          * => eg. "07.01.-11.02.16" or "11.02.16"
@@ -101,7 +107,7 @@ export class AaltoApi {
           courseEvent.startDate = dataPiece;
           courseEvent.endDate = dataPiece;
         } else {
-          courseEvent.isValid = false;
+          isEvent = false;
         }
 
         // Test if event has time => eg. "thu 13.15-15.00"
@@ -118,12 +124,16 @@ export class AaltoApi {
             courseEvent.startTime = parts[0];
             courseEvent.endTime = parts[1];
           } else {
-            courseEvent.isValid = false;
+            isEvent = false;
           }
         } else {
-          courseEvent.isValid = false;
+          isEvent = false;
         }
-        courseEvents.push(courseEvent);
+        if (isEvent) {
+          console.log('dataPiece   ===>', dataPiece);
+          console.log('courseEvent ===>', courseEvent);
+          courseEvents.push(courseEvent);
+        }
       }
     });
 
@@ -134,7 +144,7 @@ export class AaltoApi {
   _getEventLocation(roomName) {
     return new Promise((resolve, reject) => {
       client
-      .waitForVisible('input[value*="' + roomName + '"]', 5000)
+      // .waitForVisible('input[value*="' + roomName + '"]', 5000)
       .click('input[value*="' + roomName + '"]')
       .getText('td.tyyli0', (err, res) => {
         if (err) {
@@ -186,9 +196,7 @@ export class AaltoApi {
           console.log('START OF - Getting the events info', res);
           if (res) {
             const eventInfo = _.isArray(res) ? res : [res];
-            console.log('before forEach');
             eventInfo.forEach((section) => {
-              console.log('in forEach');
               const courseEvents = this._parseCourseEvents(section);
 
               /* eslint-disable */
@@ -207,12 +215,9 @@ export class AaltoApi {
              * Temporarily set location as the room name => easier to attach
              * proper location info later
              */
-            allRooms.forEach((roomName, indx) => {
-              console.log('==>', this.coursesData[courseCode].events[indx]);
+            this.coursesData[courseCode].events.forEach((evnt, indx) => {
               // Only valid events have location info
-              if (this.coursesData[courseCode].events[indx].isValid) {
-                this.coursesData[courseCode].events[indx].location = roomName;
-              }
+              evnt.location = allRooms[indx];
             });
 
             console.log(
@@ -235,13 +240,14 @@ export class AaltoApi {
 
               console.log('END OF - Getting the location info');
               console.log('coursesData is now:', this.coursesData[courseCode]);
+              return this.coursesData[courseCode];
             })
-            .then(() => {
+            .then((data) => {
               // End the the client session
               client
               .end()
               .then(() => {
-                resolve(this.coursesData[courseCode]);
+                resolve(data);
               });
             })
             .catch((error) => {
