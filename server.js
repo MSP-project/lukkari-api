@@ -14,6 +14,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/a/course/:coursecode', (req, res) => {
+  console.time('api');
   aaltoApi.getEventsByCourseCode(req.params.coursecode)
   .then((data) => {
     if (_.isObject(data)) {
@@ -21,6 +22,7 @@ app.get('/a/course/:coursecode', (req, res) => {
     } else {
       res.send('No data');
     }
+    console.timeEnd('api');
   })
   .catch((error) => {
     console.log(error);

@@ -1,8 +1,10 @@
 import { Promise } from 'bluebird';
 const _ = require('underscore');
 const webdriverio = require('webdriverio');
-const oodiSearchUrl = 'http://oodi.aalto.fi/a/opintjakstied.jsp'
-                    + '?html=1&Kieli=6&Tunniste=';
+const locationDict = require('./locations');
+/* eslint-disable */
+const oodiSearchUrl = 'http://oodi.aalto.fi/a/opintjakstied.jsp?html=1&Kieli=6&Tunniste=';
+/* eslint-enable */
 
 const options = {
   desiredCapabilities: {
@@ -140,7 +142,6 @@ export class AaltoApi {
     return courseEvents;
   }
 
-
   _getEventLocation(roomName) {
     return new Promise((resolve, reject) => {
       client
@@ -180,20 +181,16 @@ export class AaltoApi {
       .init()
       .url(url)
       .getText('.tauluotsikko', (err, res) => {
-        console.log('START OF - Getting the course info', res);
         const parts = this._parseCourseName(res[0]);
         this.coursesData[courseCode].course.name = parts.name;
         this.coursesData[courseCode].course.credits = parts.credits;
         this.coursesData[courseCode].course.code = parts.code;
-        console.log('END OF - Getting the course info');
-        console.log('coursesData is now:', this.coursesData[courseCode]);
         return '*=' + parts.name;
       })
       .then((courseNameLink) => {
         client
         .click(courseNameLink)
         .getText('table.kll', (err, res) => {
-          console.log('START OF - Getting the events info', res);
           if (res) {
             const eventInfo = _.isArray(res) ? res : [res];
             eventInfo.forEach((section) => {
@@ -204,60 +201,52 @@ export class AaltoApi {
               /* eslint-enable */
             });
           }
-          console.log('END OF - Getting the events info');
-          console.log('coursesData is now:', this.coursesData[courseCode]);
         })
         .getValue('td[width="36%"] input.submit2', (err, res) => {
-          console.log('START OF - Getting the location info', res);
           if (res) {
             const allRooms = _.isArray(res) ? res : [res];
-            /*
-             * Temporarily set location as the room name => easier to attach
-             * proper location info later
-             */
+            const roomsToGet = [];
+
             this.coursesData[courseCode].events.forEach((evnt, indx) => {
-              // Only valid events have location info
-              evnt.location = allRooms[indx];
+              const parts = allRooms[indx].split('/');
+              const buildingNum = parts[0];
+              const roomNum = parts[1];
+
+              if (locationDict[buildingNum]) {
+                evnt.location = {
+                  'room': roomNum,
+                  'building': locationDict[buildingNum].building || null,
+                  'address': locationDict[buildingNum].address || null,
+                  'abbrev': allRooms[indx],
+                };
+              } else {
+                evnt.location = allRooms[indx];
+                roomsToGet.push(allRooms[indx]);
+              }
             });
 
-            console.log(
-              'coursesData before location details:',
-              this.coursesData[courseCode]
-            );
+            if (roomsToGet.length) {
+              Promise.map(roomsToGet, (roomName) => {
+                return this._getEventLocation(roomName);
+              }, {concurrency: 1})
+              .then((locations) => {
+                const locationMapper = this._parseLocationData(locations);
 
-            // No need to fetch same room info multiple times
-            const uniqRooms = _.uniq(res);
-
-            Promise.map(uniqRooms, (roomName) => {
-              return this._getEventLocation(roomName);
-            }, {concurrency: 1})
-            .then((locations) => {
-              const locationMapper = this._parseLocationData(locations);
-
-              this.coursesData[courseCode].events.forEach((courseEvent) => {
-                courseEvent.location = locationMapper[courseEvent.location];
+                this.coursesData[courseCode].events.forEach((courseEvent) => {
+                  courseEvent.location = locationMapper[courseEvent.location];
+                });
+                return this.coursesData[courseCode];
+              })
+              .then((data) => {
+                // End the the client session
+                client
+                .end()
+                .then(() => {
+                  console.log('resolving after getting locations');
+                  resolve(data);
+                });
               });
-
-              console.log('END OF - Getting the location info');
-              console.log('coursesData is now:', this.coursesData[courseCode]);
-              return this.coursesData[courseCode];
-            })
-            .then((data) => {
-              // End the the client session
-              client
-              .end()
-              .then(() => {
-                resolve(data);
-              });
-            })
-            .catch((error) => {
-              console.log('Error getting location info', error);
-              client
-              .end()
-              .then(() => {
-                reject(error);
-              });
-            });
+            }
           } else {
             client
             .end()
@@ -265,6 +254,23 @@ export class AaltoApi {
               reject('Something went wrong');
             });
           }
+        })
+        .then(() => {
+          // End the the client session
+          client
+          .end()
+          .then(() => {
+            console.log('resolving with local locations');
+            resolve(this.coursesData[courseCode]);
+          });
+        })
+        .catch((error) => {
+          console.log('Error getting location info', error);
+          client
+          .end()
+          .then(() => {
+            reject(error);
+          });
         });
       });
 
@@ -278,3 +284,24 @@ export class AaltoApi {
     });
   }
 }
+
+/*
+// No need to fetch same room info multiple times
+const uniqRooms = _.uniq(res);
+// , {concurrency: 1}
+Promise.map(uniqRooms, (roomName) => {
+  return this._getEventLocation(roomName);
+})
+.then((locations) => {
+  console.log(locations);
+  // const locationMapper = this._parseLocationData(locations);
+  //
+  // this.coursesData[courseCode].events.forEach((courseEvent) => {
+  //   courseEvent.location = locationMapper[courseEvent.location];
+  // });
+  //
+  // console.log('END OF - Getting the location info');
+  // console.log('coursesData is now:', this.coursesData[courseCode]);
+  return this.coursesData[courseCode];
+})
+*/
