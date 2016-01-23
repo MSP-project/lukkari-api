@@ -233,7 +233,10 @@ export class AaltoApi {
                 const locationMapper = this._parseLocationData(locations);
 
                 this.coursesData[courseCode].events.forEach((courseEvent) => {
-                  courseEvent.location = locationMapper[courseEvent.location];
+                  // Fill the missing location info
+                  if (_.isString(courseEvent.location)) {
+                    courseEvent.location = locationMapper[courseEvent.location];
+                  }
                 });
                 return this.coursesData[courseCode];
               })
