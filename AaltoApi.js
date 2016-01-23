@@ -68,22 +68,17 @@ export class AaltoApi {
   _parseCourseEvents(data) {
     const courseEvents = [];
     const splittedData = data.split('\n');
-    console.log('_parseCourseEvents - splittedData', splittedData);
 
-    /* eslint-disable */
     // eg. "midtermexam" or "exercise"
     const courseEventType = splittedData[1]
     .toLowerCase()
     .replace(/ /g, '')
     .replace(/teacher/g, '')
     .replace(/exercises/g, 'exercise');
-    /* eslint-enable */
 
-    console.log('_parseCourseEvents - courseEventType', courseEventType);
-
-    /* eslint-disable */
     const dateRangeRgx = /^\d{2}\.\d{2}\.-\d{2}\.\d{2}\.\d{2}$/;
     const dateSingleRgx = /^\d{2}\.\d{2}\.\d{2}(?! klo)$/;
+    /* eslint-disable */
     const timeRgx = /^(?:mon|tue|wed|thu|fri|sat|sun) \d{2}\.\d{2}-\d{2}\.\d{2}$/;
     /* eslint-enable */
 
@@ -116,7 +111,6 @@ export class AaltoApi {
         if (splittedData.length - 1 >= idx + 1) {
           // The next piece contains the time info
           const nextDataPiece = splittedData[idx + 1].trim();
-          console.log('nextDataPiece:', nextDataPiece);
 
           if (!!nextDataPiece.match(timeRgx)) {
             const day = nextDataPiece.slice(0, 3);
@@ -132,8 +126,6 @@ export class AaltoApi {
           isEvent = false;
         }
         if (isEvent) {
-          console.log('dataPiece   ===>', dataPiece);
-          console.log('courseEvent ===>', courseEvent);
           courseEvents.push(courseEvent);
         }
       }
@@ -242,36 +234,28 @@ export class AaltoApi {
               })
               .then((data) => {
                 // End the the client session
-                client
-                .end()
-                .then(() => {
+                client.end().then(() => {
                   console.log('resolving after getting locations');
                   resolve(data);
                 });
               });
             }
           } else {
-            client
-            .end()
-            .then(() => {
+            client.end().then(() => {
               reject('Something went wrong');
             });
           }
         })
         .then(() => {
           // End the the client session
-          client
-          .end()
-          .then(() => {
+          client.end().then(() => {
             console.log('resolving with local locations');
             resolve(this.coursesData[courseCode]);
           });
         })
         .catch((error) => {
           console.log('Error getting location info', error);
-          client
-          .end()
-          .then(() => {
+          client.end().then(() => {
             reject(error);
           });
         });
@@ -287,24 +271,3 @@ export class AaltoApi {
     });
   }
 }
-
-/*
-// No need to fetch same room info multiple times
-const uniqRooms = _.uniq(res);
-// , {concurrency: 1}
-Promise.map(uniqRooms, (roomName) => {
-  return this._getEventLocation(roomName);
-})
-.then((locations) => {
-  console.log(locations);
-  // const locationMapper = this._parseLocationData(locations);
-  //
-  // this.coursesData[courseCode].events.forEach((courseEvent) => {
-  //   courseEvent.location = locationMapper[courseEvent.location];
-  // });
-  //
-  // console.log('END OF - Getting the location info');
-  // console.log('coursesData is now:', this.coursesData[courseCode]);
-  return this.coursesData[courseCode];
-})
-*/
