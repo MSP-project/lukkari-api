@@ -4,6 +4,7 @@
 
 Install npm packages
 ```
+$ npm install nodemon -g
 $ npm install
 ```
 
