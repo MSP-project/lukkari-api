@@ -1,5 +1,44 @@
 # LukkariApp - Server
 
+
+## Endpoints
+
+api/course/:coursecode
+=> kurssin tiedot + eventit
+
+User
+- username
+- password
+
+
+Course
+- id
+- code
+- name
+- credits
+
+
+Event
+- id
+- date
+- type
+- coursecode
+- examcode
+- label = coursename + eventtype
+- day
+- startTime
+- endTime
+- locations: [
+  {
+    - abbrev
+    - room
+    - address
+    - building
+    - lat
+    - lng
+  }
+]
+
 ## Requirements
 
 Install npm packages
