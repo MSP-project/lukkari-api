@@ -8,7 +8,7 @@ const bodyParser = require('koa-bodyparser');
 const app = module.exports = new Koa();
 
 // Error handling
-import Boom from 'boom';
+const Boom = require('boom');
 
 // APIs
 const aaltoApi = require('./apis/oodi-aalto');
@@ -17,6 +17,7 @@ const aaltoApi = require('./apis/oodi-aalto');
 const monk = require('monk');
 const db = monk('localhost/lukkari');
 
+// Collections
 const courses = db.get('courses');
 
 // For parsing request json data
@@ -85,13 +86,18 @@ async function getCourse(ctx) {
   const courseCode = ctx.params.coursecode;
 
   // Check if in db
-  console.log('search course from db');
-  const data = await courses.find({ 'course.code': courseCode });
+  console.log(`search course from db with code ${courseCode}`);
+  const data = await courses.findOne({ 'course.code': courseCode });
 
   if (data) {
+    console.log('found from db!', data);
+
     ctx.body = data;
 
-    // TODO: start update daemon for the course
+    // Update course data in background
+    updateCourseData(courseCode);   // TODO do we need scheduled jobs?
+
+    return;
   }
 
   console.log('course not found in db => scrape from Oodi');
@@ -99,14 +105,16 @@ async function getCourse(ctx) {
   try {
     const scrapedData = await aaltoApi.getCourse(courseCode);
 
-    console.log('scraped data', scrapedData);
+    console.log('scraped the data from oodi', scrapedData);
 
     // Add to db
     courses.insert(scrapedData);
 
     ctx.body = scrapedData;
+
+    return;
   } catch (e) {
-    console.log('ERR', e);
+    console.log(e);
 
     if (e.isBoom) {
       throw e;  // just re-throw the error
@@ -116,6 +124,16 @@ async function getCourse(ctx) {
     }
   }
 }
+
+async function updateCourseData(courseCode) {
+  const scrapedData = await aaltoApi.getCourse(courseCode);
+
+  courses.findAndModify({
+    query: { 'course.code': courseCode },
+    update: {...scrapedData},
+  });
+}
+
 // function authenticate() {
 //   console.log(this.request.body);
 //   const { username, password } = this.request.body;
