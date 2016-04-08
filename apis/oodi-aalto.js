@@ -38,8 +38,27 @@ async function getCourse(courseCode) {
     throw Boom.notFound(errorTypes.ERROR_COURSE_NOT_FOUND);
   }
 
+  // eg. 13.01.16 -07.04.16
+  const fullDateRangeRgx = /^\d{2}\.\d{2}\.\d{2}\s-\d{2}\.\d{2}\.\d{2}$/;
+  const durationCandidates = await client.getText('td[width="280"].tyyli0');
+
+  const courseDurationList = durationCandidates
+    .filter((candidate) => !!candidate.match(fullDateRangeRgx))
+    .map((duration) => {
+      const parts = duration.split('-');
+      const start = moment.utc(parts[0].trim(), 'DD.MM.YY').toISOString();
+      const end = moment.utc(parts[1].trim(), 'DD.MM.YY').toISOString();
+
+      return { start, end };
+    });
+
+  const courseDuration = courseDurationList[0];
+
   // Add course info to data
-  data.course = courseData;
+  data.course = {
+    ...courseData,
+    ...courseDuration,
+  };
 
   /*
    * 2) Open course's detail oodi page and scrape the events data
@@ -99,20 +118,14 @@ async function getCourse(courseCode) {
 function _parseCourseName(courseInfo) {
   const parts = courseInfo.split(',');
 
-  if (parts.length === 1) {
-    return null;
-  }
+  if (parts.length === 1) return null;
 
   const credits = parts.pop().trim();
   const parts2 = parts[0].split(' ');
   const code = parts2.shift();
   const name = parts2.join(' ').trim();
 
-  return {
-    code: code,
-    name: name,
-    credits: credits,
-  };
+  return { code, name, credits };
 }
 
 function _createSubEvents(ddmmyyStart, ddmmyyEnd) {
@@ -122,10 +135,7 @@ function _createSubEvents(ddmmyyStart, ddmmyyEnd) {
 
   while (start.add(7, 'days').isBefore(end)) {
     subEvents.push(
-      {
-        id: null,
-        date: start.format('MM-DD-YYYY'),
-      }
+      { id: null, date: start.format('MM-DD-YYYY') }
     );
   }
   return subEvents;
@@ -147,17 +157,15 @@ function _parseCourseEvents(eventSections, locationList) {
 
     const dateRangeRgx = /^\d{2}\.\d{2}\.-\d{2}\.\d{2}\.\d{2}$/;
     const dateSingleRgx = /^\d{2}\.\d{2}\.\d{2}(?! klo)$/;
-    /* eslint-disable */
+    /* eslint-disable max-len*/
     const timeRgx = /^(?:mon|tue|wed|thu|fri|sat|sun) \d{2}\.\d{2}-\d{2}\.\d{2}$/;
-    /* eslint-enable */
+    /* eslint-enable max-len*/
 
     splittedData.forEach((dataPiece, idx) => {
       let isEvent = true;
 
       // Init new event
-      const courseEvent = {
-        type: courseEventType,
-      };
+      const courseEvent = { type: courseEventType };
 
       /*
        * Test if event has single or ranged date
@@ -181,10 +189,7 @@ function _parseCourseEvents(eventSections, locationList) {
         courseEvent.subEvents = subEvents;
       } else if (!!dataPiece.match(dateSingleRgx)) {
         courseEvent.subEvents.push(
-          {
-            id: null,
-            date: dataPiece,
-          }
+          { id: null, date: dataPiece }
         );
         // courseEvent.startDate = dataPiece;
         // courseEvent.endDate = dataPiece;
@@ -218,12 +223,12 @@ function _parseCourseEvents(eventSections, locationList) {
             const locationDetails = locationMapper[locationParts[0]];
 
             courseEvent.locations.push({
-              abbrev: abbrev,
               room: locationParts[0],
               address: locationDetails.address,
               building: locationDetails.building,
               lat: locationDetails.lat,
               lng: locationDetails.lng,
+              abbrev,
             });
 
             cursor += 1;
@@ -258,12 +263,12 @@ function _parseCourseEvents(eventSections, locationList) {
         const locationDetails = locationMapper[locationParts[0]];
 
         courseEvent.locations.push({
-          abbrev: abbrev,
           room: locationParts[0],
           address: locationDetails.address,
           building: locationDetails.building,
           lat: locationDetails.lat,
           lng: locationDetails.lng,
+          abbrev,
         });
       }
 

@@ -3,6 +3,11 @@
 const Koa = require('koa');
 const router = require('koa-router')();
 const bodyParser = require('koa-bodyparser');
+const moment = require('moment');
+
+// Set locale => for finnish weekdays etc.
+moment.locale('fi');
+
 // const jwt = require('koa-jwt');
 
 const app = module.exports = new Koa();
@@ -46,16 +51,17 @@ app.use(bodyParser());
 // .unless({ path: [/^\/authenticate/] }));
 
 
+// Provide some useful info
 app.use(async (ctx, next) => {
-  // Provide some useful info
   const start = new Date;
   await next();
   const ms = new Date - start;
   console.log(`Req time: ${ctx.method} ${ctx.url} - ${ms}ms`);
 });
 
+
+// Middleware that catches errors which propagated all the way to the top.
 app.use(async (ctx, next) => {
-  // Middleware that catches errors which propagated all the way to the top.
   try {
     await next();
   } catch (err) {
@@ -86,11 +92,16 @@ async function getCourse(ctx) {
   const courseCode = ctx.params.coursecode;
 
   // Check if in db
-  console.log(`search course from db with code ${courseCode}`);
-  const data = await courses.findOne({ 'course.code': courseCode });
+  console.log(`==> search course from db with code ${courseCode}`);
+
+  const now = moment().utc().toISOString();
+  const data = await courses.findOne({
+    'course.code': courseCode,
+    'course.end': { $gt: now }, // we want only active courses
+  });
 
   if (data) {
-    console.log('found from db!', data);
+    console.log('==> found from db:', data.course);
 
     ctx.body = data;
 
@@ -100,13 +111,22 @@ async function getCourse(ctx) {
     return;
   }
 
-  console.log('course not found in db => scrape from Oodi');
+  console.log('==> course not found in db -> scrape from Oodi');
 
   try {
     const scrapedData = await aaltoApi.getCourse(courseCode);
 
-    console.log('scraped the data from oodi', scrapedData);
+    console.log('==> scraped the data from oodi:', scrapedData.course);
 
+    // Delete out-dated course data
+    courses.remove({ 'course.code': courseCode }, (err) => {
+      if (err) throw err;
+    });
+
+    /* NOTE: scrapedData can be out-dated if the course has just ended
+     * TODO: do we want to check the end date also here?
+     * is it ok to return out-dated / irrelevant data?
+     */
     // Add to db
     courses.insert(scrapedData);
 
