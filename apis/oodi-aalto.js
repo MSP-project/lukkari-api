@@ -1,6 +1,8 @@
-import { Promise } from 'bluebird';
+/* eslint-disable no-use-before-define */
 
-const _ = require('underscore');
+// import { Promise } from 'bluebird';
+
+// const _ = require('lodash');
 const moment = require('moment');
 const webdriverio = require('webdriverio');
 const locationMapper = require('../locations');
@@ -9,16 +11,16 @@ const errorTypes = require('../errorTypes');
 const oodiSearchUrl = 'http://oodi.aalto.fi/a/opintjakstied.jsp?' +
                       'html=1&Kieli=6&Tunniste=';
 
-const options = {
-  desiredCapabilities: {
-    browserName: 'phantomjs',
-  },
-};
+// Error handling
+const Boom = require('boom');
+
+const options = { desiredCapabilities: { browserName: 'phantomjs' } };
 
 // Exposed methods
 module.exports.getCourse = getCourse;
 
-function * getCourse(courseCode) {
+
+async function getCourse(courseCode) {
   const client = webdriverio.remote(options);
   const url = oodiSearchUrl + courseCode;
   const data = {};
@@ -26,18 +28,14 @@ function * getCourse(courseCode) {
   /*
    * 1) Open course's oodi page and scrape the table titles
    */
-  const tableTitles = yield client.init().url(url).getText('.tauluotsikko');
+  const tableTitles = await client.init().url(url).getText('.tauluotsikko');
 
   // first title is eg. ME-E4300 Semantic Web, 5 cr
   const courseData = _parseCourseName(tableTitles[0]);
 
   if (!courseData) {
     console.log('COURSE NOT FOUND');
-    this.status = 404;
-    this.body = {
-      message: errorTypes.ERROR_COURSE_NOT_FOUND,
-    };
-    return;
+    throw Boom.notFound(errorTypes.ERROR_COURSE_NOT_FOUND);
   }
 
   // Add course info to data
@@ -47,8 +45,16 @@ function * getCourse(courseCode) {
    * 2) Open course's detail oodi page and scrape the events data
    */
   const nextPageLink = '*=' + courseData.name;
-  let eventsData = yield client.click(nextPageLink).getText('table.kll');
-  let locationsData = yield client.getValue('td[width="36%"] input.submit2');
+
+  let eventsData;
+  try {
+    eventsData = await client.click(nextPageLink).getText('table.kll');
+  } catch (e) {
+    console.log('No current/future teaching');
+    throw Boom.notFound(errorTypes.ERROR_COURSE_HAS_NO_TEACHING);
+  }
+
+  let locationsData = await client.getValue('td[width="36%"] input.submit2');
 
   /*
    * NOTE: if event does not have a location specified => it is impossible to
@@ -58,45 +64,38 @@ function * getCourse(courseCode) {
 
   if (!eventsData) {
     console.log('COURSE EVENTS NOT FOUND');
-    this.status = 404;
-    this.body = {
-      message: errorTypes.ERROR_COURSE_EVENTS_NOT_FOUND,
-    };
-    return;
+    throw Boom.notFound(errorTypes.ERROR_COURSE_EVENTS_NOT_FOUND);
   }
 
   if (!locationsData) {
     console.log('COURSE EVENTS LOCATIONS NOT FOUND');
-    this.status = 404;
-    this.body = {
-      message: errorTypes.ERROR_COURSE_EVENTS_LOCATION_NOT_FOUND,
-    };
-    return;
+    throw Boom.notFound(errorTypes.ERROR_COURSE_EVENTS_LOCATION_NOT_FOUND);
   }
 
   // Events and locations data needs to be an array for the parser
-  eventsData = _.isArray(eventsData) ? eventsData : [eventsData];
-  locationsData = _.isArray(locationsData) ? locationsData : [locationsData];
+  eventsData = Array.isArray(eventsData)
+    ? eventsData
+    : [eventsData];
+
+  locationsData = Array.isArray(locationsData)
+    ? locationsData
+    : [locationsData];
 
   const courseEvents = _parseCourseEvents(eventsData, locationsData);
 
   if (!courseEvents) {
     console.log('UNABLE TO PARSE COURSE EVENTS/LOCATIONS');
-    this.status = 404;
-    this.body = {
-      message: errorTypes.ERROR_COURSE_EVENTS_NOT_PARSED,
-    };
-    return;
+    throw Boom.notFound(errorTypes.ERROR_COURSE_EVENTS_NOT_PARSED);
   }
 
   // Add courses events info to data
   data.events = courseEvents;
 
-  this.body = data;
+  return data;
 }
 
 
-// Own methods
+/* ***** Own methods ************************ */
 function _parseCourseName(courseInfo) {
   const parts = courseInfo.split(',');
 

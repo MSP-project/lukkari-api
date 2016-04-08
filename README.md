@@ -66,10 +66,9 @@ Start selenium server
 $ selenium-standalone start
 ```
 
-Start node/express server
-Start selenium server
+Start node/koa server
 ```
-$ node app.js
+$ npm start
 ```
 
 Shutting down Selenium *Ctrl+c* or
