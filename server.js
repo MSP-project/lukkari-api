@@ -106,7 +106,7 @@ async function getCourse(ctx) {
     ctx.body = data;
 
     // Update course data in background
-    updateCourseData(courseCode);   // TODO do we need scheduled jobs?
+    startUpdateCourseWorker(courseCode);
 
     return;
   }
@@ -145,14 +145,27 @@ async function getCourse(ctx) {
   }
 }
 
-async function updateCourseData(courseCode) {
-  const scrapedData = await aaltoApi.getCourse(courseCode);
 
-  courses.findAndModify({
-    query: { 'course.code': courseCode },
-    update: {...scrapedData},
+/* eslint-disable camelcase */
+const child_process = require('child_process');
+/* eslint-enable camelcase */
+
+function startUpdateCourseWorker(courseCode) {
+  const worker = child_process.spawn('node', ['updateCourse.js', courseCode]);
+
+  worker.stdout.on('data', (data) => {
+    console.log('Worker stdout: ' + data);
+  });
+
+  worker.stderr.on('data', (data) => {
+    console.log('Worker stderr: ' + data);
+  });
+
+  worker.on('close', (code) => {
+    console.log('Worker exited with code ' + code);
   });
 }
+
 
 // function authenticate() {
 //   console.log(this.request.body);
