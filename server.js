@@ -294,7 +294,9 @@ async function loginUser(ctx) {
     expiresIn: 220000000, // expires in about 7 years
   });
 
-  ctx.body = token;
+  delete user.password;   // Don't return user's password
+
+  ctx.body = { token, user};
 }
 
 
