@@ -3,7 +3,9 @@
 const Koa = require('koa');
 const router = require('koa-router')();
 const bodyParser = require('koa-bodyparser');
+const jwt = require('koa-jwt');
 const moment = require('moment');
+const config = require('./config');
 // const jwt = require('koa-jwt');
 
 // Set locale => for finnish weekdays etc.
@@ -23,28 +25,13 @@ const db = monk('localhost/lukkari');
 const courses = db.get('courses');
 const users = db.get('users');
 
+// Make sure that usernames are unique
+users.index('username', { unique: true });
+
 const app = module.exports = new Koa();
-
-
-// sessions
-const convert = require('koa-convert'); // convert Koa 1.0 generators to async
-const session = require('koa-generic-session');
-const MongoStore = require('koa-generic-session-mongo');
-
-app.keys = ['lukkari-secret-session-key', 'another-lukkari-secret-session-key'];
-app.use(convert(session({
-  store: new MongoStore(),  // TODO we migth need mongoose for this...
-})));
 
 // For parsing request json data
 app.use(bodyParser());
-
-// authentication
-require('./auth');
-const passport = require('koa-passport');
-app.use(passport.initialize());
-app.use(passport.session());
-
 
 // Provide some performance info
 app.use(async (ctx, next) => {
@@ -54,23 +41,27 @@ app.use(async (ctx, next) => {
   console.log(`Req time: ${ctx.method} ${ctx.url} - ${ms}ms`);
 });
 
-
 // Middleware that catches errors which propagated all the way to the top.
 app.use(async (ctx, next) => {
   try {
     await next();
   } catch (err) {
+    console.log('Propagated error catched', err);
+
     if (err.isBoom) {
       ctx.status = err.output.statusCode;
       ctx.body = err.output.payload;
       ctx.app.emit('error', err, ctx);
-    } else {
-      // Wrap error into a Boom error, if necessary
-      const error = Boom.wrap(err, 500, 'Internal Server Error');
-      // Output error
+    } else if (err.status === 401) {
+      const error = Boom.wrap(err, 403, 'Unauthorized');
       ctx.status = error.output.statusCode;
       ctx.body = error.output.payload;
-      ctx.app.emit('error', error, ctx);
+      ctx.app.emit('error', error, ctx);  // Output error
+    } else {
+      const error = Boom.wrap(err, 500, 'Internal Server Error');
+      ctx.status = error.output.statusCode;
+      ctx.body = error.output.payload;
+      ctx.app.emit('error', error, ctx);  // Output error
     }
   }
 });
@@ -79,7 +70,7 @@ app.use(async (ctx, next) => {
 // Routes
 router.get('/course/:coursecode', getCourse);
 
-router.get('/login', loginUser);
+router.post('/login', loginUser);
 router.post('/register', registerUser);
 
 router.get('/user/:uid/courses', getUserCourses);
@@ -89,10 +80,21 @@ router.delete('/user/:uid', deleteUser);
 router.post('/user/:uid/courses/:coursecode', addUserCourse);
 router.delete('/user/:uid/courses/:coursecode', deleteUserCourse);
 
+
+/* *********************************************************************
+ * Middleware below this line is only reached if JWT token is valid
+ *********************************************************************** */
+app.use(jwt({ secret: config.appSecret })
+   .unless({ path: [/^\/(login|register|course)/] }));
+
+
 app.use(router.routes());
 app.use(router.allowedMethods());
 
 
+/* ****************************************************
+ * Helper method for getting a course by course code
+ ****************************************************** */
 async function _getCourseByCode(courseCode) {
   // Check if in db
   console.log(`==> search course from db with code ${courseCode}`);
@@ -145,6 +147,9 @@ async function _getCourseByCode(courseCode) {
 }
 
 
+/* **********************
+ * Exposed API methods
+ ************************ */
 async function getCourse(ctx) {
   try {
     const courseCode = ctx.params.coursecode;
@@ -195,12 +200,21 @@ async function addUserCourse(ctx) {
 
   const data = await _getCourseByCode(coursecode);
 
-  users.findAndModify(
-    { _id: uid },
-    { $push: { courses: coursecode },
-  });
+  try {
+    const res = await users.findAndModify(
+      { _id: uid },
+      { $addToSet: { courses: coursecode }, // Adds only if not found
+    });
 
-  ctx.body = data;
+    if (!res) {
+      throw Boom.badRequest('Could not add course to user. User not found.');
+    }
+
+    ctx.body = data;
+  } catch (e) {
+    if (e.isBoom) throw e;
+    else throw Boom.badData('Could not add course to user. Invalid data.');
+  }
 }
 
 
@@ -218,20 +232,6 @@ async function deleteUserCourse(ctx) {
 }
 
 
-async function registerUser(ctx) {
-  // TODO: add session stuff
-  const { username, password } = ctx.request.body;
-
-  console.log(`Add new user - username: ${username}, password: ${password}`);
-
-  const newUser = await users.insert({ username, password });
-
-  console.log(newUser);
-
-  ctx.body = newUser._id;
-}
-
-
 async function deleteUser(ctx) {
   // TODO: add session stuff
   const { uid } = ctx.params;
@@ -246,20 +246,61 @@ async function deleteUser(ctx) {
 }
 
 
-async function loginUser(ctx) {
-  // TODO: implement
-  const { uid } = ctx.params;
-  console.log(`Login user with uid: ${uid}`);
+async function registerUser(ctx) {
+  const { username, password } = ctx.request.body;
+
+  console.log(`Add new user - username: ${username}, password: ${password}`);
+
+  let user;
+  try {
+    user = await users.insert({ username, password });
+  } catch (e) {
+    if (e.name === 'MongoError' && e.code === 11000) {
+      throw Boom.badRequest('Username already exists!');
+    }
+  }
+
+  console.log(user);
+
+  if (user) {
+    const token = jwt.sign(user, config.appSecret, {
+      expiresIn: 220000000, // expires in about 7 years
+    });
+
+    delete user.password;   // Don't return user's password
+
+    ctx.body = { token, user };
+  } else throw Boom.badImplementation('Could not add new user.');
 }
 
 
-// passport.authenticate('local'),
-//   (req, res) => {
-//     // If this function gets called, authentication was successful.
-//     // `req.user` contains the authenticated user.
-//     res.redirect('/users/' + req.user.username);
-//   });
+async function loginUser(ctx) {
+  const { username, password } = ctx.request.body;
 
+  console.log(`Trying to login user ${username}.`);
+
+  const user = await users.findOne({ username });
+
+  if (!user) {
+    throw Boom.badData('Authentication failed. User not found.');
+  }
+
+  // Check password
+  if (user.password !== password) {
+    throw Boom.badData('Authentication failed. Password does not match.');
+  }
+
+  const token = jwt.sign(user, config.appSecret, {
+    expiresIn: 220000000, // expires in about 7 years
+  });
+
+  ctx.body = token;
+}
+
+
+/* *********************************************************
+ * A background process that updates course by course code
+ *********************************************************** */
 
 /* eslint-disable camelcase */
 const child_process = require('child_process');
@@ -282,5 +323,6 @@ function startUpdateCourseWorker(courseCode) {
 }
 
 
+// Start the server
 app.listen(8081);
 console.log('App listening on port 8081');
