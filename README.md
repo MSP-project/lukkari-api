@@ -1,5 +1,15 @@
 # LukkariApp - Server
 
+## How it works
+*New user*
+- registers to Lukkari App (basic, google, twitter etc...)
+  - add new user
+- starts adding courses (taps "+" button)
+  - "Give course code" -> types: "ME-E4400"
+  - search from db
+    - if found -> add the course to the user -> update course info
+    - if not found -> scrape data from Oodi -> add to courses collection -> add course to user
+  - return course data?
 
 ## Endpoints
 

@@ -133,11 +133,11 @@ function _createSubEvents(ddmmyyStart, ddmmyyEnd) {
   const start = moment(ddmmyyStart, 'DDMMYY');
   const end = moment(ddmmyyEnd, 'DDMMYY');
 
-  while (start.add(7, 'days').isBefore(end)) {
-    subEvents.push(
-      { id: null, date: start.format('MM-DD-YYYY') }
-    );
+  while (start.isBefore(end)) {
+    subEvents.push({ id: null, date: start.format('MM-DD-YYYY') });
+    start.add(7, 'days');
   }
+  subEvents.push({ id: null, date: end.format('MM-DD-YYYY') });
   return subEvents;
 }
 
@@ -207,6 +207,7 @@ function _parseCourseEvents(eventSections, locationList) {
           while (!!splittedData[cursor].trim().match(timeRgx)) {
             // All the times should be same so use just the first one
             if (setTime) {
+              // TODO use moment instead
               const day = weekdaysMapper[
                 splittedData[cursor].trim().slice(0, 3)
               ];

@@ -4,13 +4,10 @@ const Koa = require('koa');
 const router = require('koa-router')();
 const bodyParser = require('koa-bodyparser');
 const moment = require('moment');
+// const jwt = require('koa-jwt');
 
 // Set locale => for finnish weekdays etc.
 moment.locale('fi');
-
-// const jwt = require('koa-jwt');
-
-const app = module.exports = new Koa();
 
 // Error handling
 const Boom = require('boom');
@@ -24,34 +21,32 @@ const db = monk('localhost/lukkari');
 
 // Collections
 const courses = db.get('courses');
+const users = db.get('users');
+
+const app = module.exports = new Koa();
+
+
+// sessions
+const convert = require('koa-convert'); // convert Koa 1.0 generators to async
+const session = require('koa-generic-session');
+const MongoStore = require('koa-generic-session-mongo');
+
+app.keys = ['lukkari-secret-session-key', 'another-lukkari-secret-session-key'];
+app.use(convert(session({
+  store: new MongoStore(),  // TODO we migth need mongoose for this...
+})));
 
 // For parsing request json data
 app.use(bodyParser());
 
-// Custom 401 handling if you don't want to expose koa-jwt errors to users
-// app.use(function *(next){
-//   try {
-//     yield next;
-//   } catch (err) {
-//     if ( err.status === 401) {
-//       this.status = 401;
-//       this.body = 'Protected resource, use Authorization header to get access';
-//     } else {
-//       throw err;
-//     }
-//   }
-// });
+// authentication
+require('./auth');
+const passport = require('koa-passport');
+app.use(passport.initialize());
+app.use(passport.session());
 
 
-// Middleware below this line is only reached if JWT token is valid
-// TODO: change secret
-// app.use(jwt({
-//   secret: 'lukkari-secret',
-// })
-// .unless({ path: [/^\/authenticate/] }));
-
-
-// Provide some useful info
+// Provide some performance info
 app.use(async (ctx, next) => {
   const start = new Date;
   await next();
@@ -84,13 +79,21 @@ app.use(async (ctx, next) => {
 // Routes
 router.get('/course/:coursecode', getCourse);
 
+router.get('/login', loginUser);
+router.post('/register', registerUser);
+
+router.get('/user/:uid/courses', getUserCourses);
+router.delete('/user/:uid', deleteUser);
+
+// router.get('/user/:uid/courses/:coursecode', getUserCourse);
+router.post('/user/:uid/courses/:coursecode', addUserCourse);
+router.delete('/user/:uid/courses/:coursecode', deleteUserCourse);
+
 app.use(router.routes());
 app.use(router.allowedMethods());
 
 
-async function getCourse(ctx) {
-  const courseCode = ctx.params.coursecode;
-
+async function _getCourseByCode(courseCode) {
   // Check if in db
   console.log(`==> search course from db with code ${courseCode}`);
 
@@ -103,12 +106,10 @@ async function getCourse(ctx) {
   if (data) {
     console.log('==> found from db:', data.course);
 
-    ctx.body = data;
-
     // Update course data in background
     startUpdateCourseWorker(courseCode);
 
-    return;
+    return data;
   }
 
   console.log('==> course not found in db -> scrape from Oodi');
@@ -128,11 +129,9 @@ async function getCourse(ctx) {
      * is it ok to return out-dated / irrelevant data?
      */
     // Add to db
-    courses.insert(scrapedData);
+    const newCourse = await courses.insert(scrapedData);
 
-    ctx.body = scrapedData;
-
-    return;
+    return newCourse;
   } catch (e) {
     console.log(e);
 
@@ -144,6 +143,122 @@ async function getCourse(ctx) {
     }
   }
 }
+
+
+async function getCourse(ctx) {
+  try {
+    const courseCode = ctx.params.coursecode;
+    const course = await _getCourseByCode(courseCode);
+    ctx.body = course;
+  } catch (e) {
+    if (e.isBoom) throw e;
+    else {
+      console.log(e);
+      throw Boom.badImplementation('Could not get the requested course');
+    }
+  }
+}
+
+async function getUserCourses(ctx) {
+  // TODO: error handling
+  const { uid } = ctx.params;
+
+  console.log(`Get users ${uid} all courses.`);
+
+  const user = users.findOne({ '_id': users.id(uid) });
+
+  ctx.body = user.courses;
+}
+
+// TODO: is this required? if so implement
+// async function getUserCourse(ctx) {
+//   // TODO: error handling
+//   const { uid, coursecode } = ctx.params;
+//   console.log(`Get users ${uid} course ${coursecode}`);
+//
+//   const user = users.findOne({
+//     '_id': users.id(uid),
+//     'course.coursecode': coursecode,
+//   });
+//   const course = user.courses[coursecode];
+//
+//   console.log(`Requested course: ${course}`);
+//
+//   ctx.body = course;
+// }
+
+
+async function addUserCourse(ctx) {
+  // TODO: error handling
+  const { uid, coursecode } = ctx.params;
+  console.log(`Add new course ${coursecode} for user ${uid}`);
+
+  const data = await _getCourseByCode(coursecode);
+
+  users.findAndModify(
+    { _id: uid },
+    { $push: { courses: coursecode },
+  });
+
+  ctx.body = data;
+}
+
+
+async function deleteUserCourse(ctx) {
+  // TODO: implement
+  const { uid, coursecode } = ctx.params;
+  console.log(`Delete user's ${uid} course ${coursecode}`);
+
+  users.findAndModify(
+    { _id: uid },
+    { $pull: { courses: coursecode },
+  });
+
+  ctx.status = 204;
+}
+
+
+async function registerUser(ctx) {
+  // TODO: add session stuff
+  const { username, password } = ctx.request.body;
+
+  console.log(`Add new user - username: ${username}, password: ${password}`);
+
+  const newUser = await users.insert({ username, password });
+
+  console.log(newUser);
+
+  ctx.body = newUser._id;
+}
+
+
+async function deleteUser(ctx) {
+  // TODO: add session stuff
+  const { uid } = ctx.params;
+
+  console.log(`Delete user ${uid}`);
+
+  const res = await users.remove({ '_id': users.id(uid) });
+
+  console.log(`Deleted successfully: ${!!res}`);
+
+  ctx.status = 204;
+}
+
+
+async function loginUser(ctx) {
+  // TODO: implement
+  const { uid } = ctx.params;
+  console.log(`Login user with uid: ${uid}`);
+}
+
+
+// passport.authenticate('local'),
+//   (req, res) => {
+//     // If this function gets called, authentication was successful.
+//     // `req.user` contains the authenticated user.
+//     res.redirect('/users/' + req.user.username);
+//   });
 
 
 /* eslint-disable camelcase */
@@ -165,31 +280,6 @@ function startUpdateCourseWorker(courseCode) {
     console.log('Worker exited with code ' + code);
   });
 }
-
-
-// function authenticate() {
-//   console.log(this.request.body);
-//   const { username, password } = this.request.body;
-//
-//   // const user = yield users.findOne({
-//   //   username: username,
-//   //   password: password,
-//   // });
-//
-//   const user = true;
-//
-//   if (user) {
-//     console.log(user);
-//
-//     const token = jwt.sign(
-//       {username: 'testi', password: 'testi'},
-//       'lukkari-secret',
-//     );
-//
-//     this.status = 200;
-//     this.body = {token: token};
-//   }
-// }
 
 
 app.listen(8081);
