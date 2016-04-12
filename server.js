@@ -76,9 +76,9 @@ router.post('/register', registerUser);
 router.get('/user/:uid/courses', getUserCourses);
 router.delete('/user/:uid', deleteUser);
 
-// router.get('/user/:uid/courses/:coursecode', getUserCourse);
 router.post('/user/:uid/courses/:coursecode', addUserCourse);
 router.delete('/user/:uid/courses/:coursecode', deleteUserCourse);
+// router.get('/user/:uid/courses/:coursecode', getUserCourse);
 
 
 /* *********************************************************************
@@ -174,6 +174,7 @@ async function getUserCourses(ctx) {
 
   ctx.body = user.courses;
 }
+
 
 // TODO: is this required? if so implement
 // async function getUserCourse(ctx) {

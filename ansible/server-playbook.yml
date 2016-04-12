@@ -1,0 +1,58 @@
+- hosts: all
+  vars:
+    server_version_major: 2.53
+    server_version: "{{server_version_major}}.0"
+    jar_file: "{{server_version_major}}-server.jar"
+    sel_role: standalone
+    hub: ''
+    java_opts: ''
+    extra_args: ''
+    port: ''
+  become: 'yes'
+  become_method: 'sudo'
+  tasks:
+    - name: Update code from git
+      git:
+        repo: git@github.com:MSP-project/lukkari-api.git
+        dest: /var/www/lukkari-api/
+        update: yes
+        force: yes
+        version: master
+        accept_hostkey: yes
+        key_file: /home/lukkari/.ssh/id_rsa
+
+    - name: Install global nodejs packages
+      npm:
+        name: "{{ item }}"
+        global: yes
+      with_items:
+        - selenium-standalone
+        - phantomjs
+        - pm2
+
+    - name: Install server dependencies with npm
+      npm:
+        path: /var/www/lukkari-api
+
+    # Build server
+    - script: files/build_server.sh
+
+    - name: Install Selenium server to /usr/lib/node_modules/selenium-standalone/.selenium/selenium-server
+      tags: ['selenium']
+      command: selenium-standalone install --version={{server_version}} --baseURL=https://selenium-release.storage.googleapis.com
+
+    - name: Install Selenium config
+      tags: ['selenium']
+      template: src=defaults.j2 dest=/etc/default/selenium_{{sel_role}} owner=root group=root mode=644
+      notify: selenium reload
+
+    - name: Install init script
+      tags: ['selenium']
+      template: src=init.j2 dest=/etc/init.d/selenium_{{sel_role}} owner=root group=root mode=755
+      notify: selenium started
+
+    - name: Install pm2 startup script
+      command: pm2 startup debian
+
+    - name: Start lukkari node app with pm2
+      command: pm2 start -f /var/www/lukkari-api/_build/index.js --name="api"

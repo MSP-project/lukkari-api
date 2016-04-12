@@ -1,5 +1,15 @@
 # LukkariApp - Server
 
+## Server
+
+Tutorials
+- https://github.com/beautifulcode/ssh-copy-id-for-OSX
+- https://www.digitalocean.com/community/tutorials/initial-server-setup-with-ubuntu-14-04
+- https://www.digitalocean.com/community/tutorials/how-to-set-up-a-node-js-application-for-production-on-ubuntu-14-04
+
+SSH to server
+`$ ssh lukkari@146.185.150.48`
+
 ## How it works
 *New user*
 - registers to Lukkari App (basic, google, twitter etc...)

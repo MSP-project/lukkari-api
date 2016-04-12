@@ -1,0 +1,19 @@
+- hosts: all
+  become: 'yes'
+  become_method: 'sudo'
+  tasks:
+    - name: Install https repository support for apt
+      apt:
+        name: apt-transport-https
+        update_cache: yes
+    - name: Add nodesource apt repository key
+      apt_key:
+        url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+    - name: Add nodesource nodejs 5.x apt repository
+      apt_repository:
+        repo: deb https://deb.nodesource.com/node_5.x jessie main
+    - name: Install apt packages
+      apt:
+        name: "{{ item }}"
+      with_items:
+        - nodejs # node

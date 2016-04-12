@@ -1,0 +1,13 @@
+- hosts: all
+  become: 'yes'
+  become_method: 'sudo'
+  tasks:
+    - name: Install Mongodb
+      become: 'yes'
+      become_method: 'sudo'
+      apt:
+        name: "{{ item }}"
+        state: installed
+      with_items:
+        - mongodb
+      notify: restart mongod

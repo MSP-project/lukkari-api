@@ -1,0 +1,22 @@
+- hosts: all
+  become: 'yes'
+  become_method: 'sudo'
+  tasks:
+    - name: Update apt packages
+      apt: update_cache=yes cache_valid_time=3600
+    - name: Install apt packages
+      apt:
+        name: "{{ item }}"
+      with_items:
+        - git # where my git at
+        - python-pip # pip & ansible for dev
+        - python-dev
+        - default-jre
+
+
+# mongodb
+- include: "mongodb-playbook.yml"
+# nodejs
+- include: "node-playbook.yml"
+# Server
+- include: "server-playbook.yml"

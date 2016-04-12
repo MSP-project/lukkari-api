@@ -1,0 +1,15 @@
+---
+- name: restart mongod
+  become: 'yes'
+  become_method: 'sudo'
+  service: name=mongod state=restarted
+
+- name: selenium started
+  become: 'yes'
+  become_method: 'sudo'
+  service: name=selenium_{{sel_role}} state=started enabled=yes
+
+- name: selenium reload
+  become: 'yes'
+  become_method: 'sudo'
+  service: name=selenium_{{sel_role}} state=reloaded
