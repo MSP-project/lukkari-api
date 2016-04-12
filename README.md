@@ -116,9 +116,11 @@ http://localhost:8081/course/<course-identifier>
 **Note:** courses with loads of exercise groups will take quite a while to loads because the location information is hidden behind a link (selenium needs to visit all the location links).
 
 All endpoints:
-POST **/login**
-POST **/register**
-GET **/course/:coursecode**
-GET **/user/:uid/courses**
-DELETE **/user/:uid**
-POST, DELETE **/user/:uid/courses/:coursecode**
+```
+POST /login
+POST /register
+GET /course/:coursecode
+GET /user/:uid/courses
+DELETE /user/:uid
+POST, DELETE /user/:uid/courses/:coursecode
+```
