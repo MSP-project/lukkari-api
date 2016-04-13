@@ -12,6 +12,7 @@
   become_method: 'sudo'
   tasks:
     - name: Update code from git
+      tags: ['api']
       git:
         repo: git@github.com:MSP-project/lukkari-api.git
         dest: /var/www/lukkari-api/
@@ -30,12 +31,30 @@
         - phantomjs
         - pm2
 
-    - name: Install server dependencies with npm
+    - name: Install initial server dependencies with npm
+      tags: ['api']
       npm:
         path: /var/www/lukkari-api
 
-    # Build server
-    - script: files/build_server.sh
+    - name: Build production version of api code
+      tags: ['api']
+      command: npm run build:prod
+      args:
+        chdir: /var/www/lukkari-api/
+
+    - name: Copy index.js to build directory
+      tags: ['api']
+      command: cp /var/www/lukkari-api/index.production.js /var/www/lukkari-api/_build/index.js
+
+    - name: Copy package.json to build directory
+      tags: ['api']
+      command: cp /var/www/lukkari-api/package.json /var/www/lukkari-api/_build/
+
+    - name: Install build dependencies with npm
+      tags: ['api']
+      npm:
+        path: /var/www/lukkari-api/_build
+        production: yes
 
     - name: Install Selenium server to /usr/lib/node_modules/selenium-standalone/.selenium/selenium-server
       tags: ['selenium']
@@ -55,4 +74,5 @@
       command: pm2 startup debian
 
     - name: Start lukkari node app with pm2
+      tags: ['api']
       command: pm2 start -f /var/www/lukkari-api/_build/index.js --name="api"
