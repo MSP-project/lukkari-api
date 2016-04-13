@@ -170,7 +170,7 @@ async function getUserCourses(ctx) {
 
   console.log(`Get users ${uid} all courses.`);
 
-  const user = users.findOne({ '_id': users.id(uid) });
+  const user = await users.findOne({ '_id': users.id(uid) });
 
   ctx.body = user.courses;
 }

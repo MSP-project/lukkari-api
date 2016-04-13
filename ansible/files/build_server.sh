@@ -5,7 +5,7 @@ set -euv
 
 # Build production
 cd /var/www/lukkari-api/
-npm install
+# npm install
 npm run build:prod
 
 # Index.js without babel-register
