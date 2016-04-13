@@ -7,8 +7,8 @@ Tutorials
 - https://www.digitalocean.com/community/tutorials/initial-server-setup-with-ubuntu-14-04
 - https://www.digitalocean.com/community/tutorials/how-to-set-up-a-node-js-application-for-production-on-ubuntu-14-04
 
-SSH to server
-`$ ssh lukkari@146.185.150.48`
+Server ip
+`146.185.150.48`
 
 ## How it works
 *New user*
@@ -29,6 +29,7 @@ api/course/:coursecode
 User
 - username
 - password
+- courses (array of coursecode strings)
 
 
 Course
@@ -36,6 +37,8 @@ Course
 - code
 - name
 - credits
+- start
+- end
 
 
 Event
@@ -55,11 +58,17 @@ Event
     - address
     - building
     - lat
-    - lng
+    - l`ng
   }
 ]
 
 ## Requirements
+
+Install MongoDB
+```
+$ brew update
+$ brew install mongodb
+```
 
 Install npm packages
 ```
@@ -100,10 +109,18 @@ $ pkill -f selenium-standalone
 
 Course/lecture information can be queried from
 ```
-http://localhost:8081/a/course/<course-identifier>
+http://localhost:8081/course/<course-identifier>
 ```
 => try for example: MS-A0107, ME-E4300, ME-E4400
 
 **Note:** courses with loads of exercise groups will take quite a while to loads because the location information is hidden behind a link (selenium needs to visit all the location links).
 
-=> However if same location is found multiple times it's link is only visited once which speeds up the process a bit.
+All endpoints:
+```
+POST /login
+POST /register
+GET /course/:coursecode
+GET /user/:uid/courses
+DELETE /user/:uid
+POST, DELETE /user/:uid/courses/:coursecode
+```
