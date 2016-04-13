@@ -327,5 +327,5 @@ function startUpdateCourseWorker(courseCode) {
 
 
 // Start the server
-app.listen(8081);
+app.listen(8082);
 console.log('App listening on port 8082');
