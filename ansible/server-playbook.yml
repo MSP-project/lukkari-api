@@ -44,17 +44,15 @@
 
     - name: Copy index.js to build directory
       tags: ['api']
-      command: cp /var/www/lukkari-api/index.production.js /var/www/lukkari-api/_build/index.js
+      command: cp /var/www/lukkari-api/index.production.js /var/www/_build/index.js
 
     - name: Copy package.json to build directory
       tags: ['api']
-      command: cp /var/www/lukkari-api/package.json /var/www/lukkari-api/_build/
+      command: cp /var/www/lukkari-api/package.json /var/www/_build/
 
     - name: Install build dependencies with npm
       tags: ['api']
-      npm:
-        path: /var/www/lukkari-api/_build
-        production: yes
+      npm: path=/var/www/_build production=yes
 
     - name: Install Selenium server to /usr/lib/node_modules/selenium-standalone/.selenium/selenium-server
       tags: ['selenium']
