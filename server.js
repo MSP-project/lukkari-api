@@ -110,7 +110,8 @@ async function _getCourseByCode(courseCode) {
     console.log('==> found from db:', data.course);
 
     // Update course data in background
-    startUpdateCourseWorker(courseCode);
+    // TODO fix the func => see comment in there
+    // startUpdateCourseWorker(courseCode);
 
     return data;
   }
@@ -311,7 +312,11 @@ const child_process = require('child_process');
 /* eslint-enable camelcase */
 
 function startUpdateCourseWorker(courseCode) {
-  const worker = child_process.spawn('node', ['updateCourse.js', courseCode]);
+  // TODO change the path to updateCourse.js based on DEV / PROD version
+  const worker = child_process.spawn(
+    'node',
+    ['/var/www/_build/updateCourse.js', courseCode]
+  );
 
   worker.stdout.on('data', (data) => {
     console.log('Worker stdout: ' + data);
