@@ -57,20 +57,25 @@
     - name: Install Selenium server to /usr/lib/node_modules/selenium-standalone/.selenium/selenium-server
       tags: ['selenium']
       command: selenium-standalone install --version={{server_version}} --baseURL=https://selenium-release.storage.googleapis.com
+      args:
+        creates: /usr/lib/node_modules/selenium-standalone/.selenium/selenium-server/{{server_version}}.server.jar
+
 
     - name: Install Selenium config
       tags: ['selenium']
-      template: src=defaults.j2 dest=/etc/default/selenium_{{sel_role}} owner=root group=root mode=644
-      notify: selenium reload
+      template: src=defaults.j2 dest=/etc/default/selenium_{{sel_role}} owner=lukkari group=lukkari mode=644
+      notify: selenium_reload
 
     - name: Install init script
       tags: ['selenium']
-      template: src=init.j2 dest=/etc/init.d/selenium_{{sel_role}} owner=root group=root mode=755
-      notify: selenium started
+      template: src=init.j2 dest=/etc/init.d/selenium_{{sel_role}} owner=lukkari group=lukkari mode=755
+      notify: selenium_started
+
+    # ${JAVA_HOME}/bin/java -- ${JAVA_OPTS} -jar /usr/lib/node_modules/selenium-standalone/.selenium/selenium-server/{{jar_file}} ${JAR_ARGS} ${EXTRA_ARGS}  2>&1
 
     - name: Install pm2 startup script
       command: pm2 startup debian
 
     - name: Start lukkari node app with pm2
       tags: ['api']
-      command: pm2 start -f /var/www/lukkari-api/_build/index.js --name="api"
+      command: pm2 start -f /var/www/_build/index.js --name="api"

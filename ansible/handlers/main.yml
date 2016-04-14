@@ -4,12 +4,12 @@
   become_method: 'sudo'
   service: name=mongod state=restarted
 
-- name: selenium started
+- name: selenium_started
   become: 'yes'
   become_method: 'sudo'
-  service: name=selenium_{{sel_role}} state=started enabled=yes
+  service: name=selenium_standalone state=started enabled=yes
 
-- name: selenium reload
+- name: selenium_reload
   become: 'yes'
   become_method: 'sudo'
-  service: name=selenium_{{sel_role}} state=reloaded
+  service: name=selenium_standalone state=reloaded

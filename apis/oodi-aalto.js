@@ -28,42 +28,43 @@ async function getCourse(courseCode) {
   /*
    * 1) Open course's oodi page and scrape the table titles
    */
-  const tableTitles = await client.init().url(url).getText('.tauluotsikko');
 
-  // first title is eg. ME-E4300 Semantic Web, 5 cr
-  const courseData = _parseCourseName(tableTitles[0]);
+  try {
+    const tableTitles = await client.init().url(url).getText('.tauluotsikko');
 
-  if (!courseData) {
+    // first title is eg. ME-E4300 Semantic Web, 5 cr
+    const courseData = _parseCourseName(tableTitles[0]);
+
+    // eg. 13.01.16 -07.04.16
+    const fullDateRangeRgx = /^\d{2}\.\d{2}\.\d{2}\s-\d{2}\.\d{2}\.\d{2}$/;
+    const durationCandidates = await client.getText('td[width="280"].tyyli0');
+
+    const courseDurationList = durationCandidates
+      .filter((candidate) => !!candidate.match(fullDateRangeRgx))
+      .map((duration) => {
+        const parts = duration.split('-');
+        const start = moment.utc(parts[0].trim(), 'DD.MM.YY').toISOString();
+        const end = moment.utc(parts[1].trim(), 'DD.MM.YY').toISOString();
+
+        return { start, end };
+      });
+
+    const courseDuration = courseDurationList[0];
+
+    // Add course info to data
+    data.course = {
+      ...courseData,
+      ...courseDuration,
+    };
+  } catch (e) {
     console.log('COURSE NOT FOUND');
     throw Boom.notFound(errorTypes.ERROR_COURSE_NOT_FOUND);
   }
 
-  // eg. 13.01.16 -07.04.16
-  const fullDateRangeRgx = /^\d{2}\.\d{2}\.\d{2}\s-\d{2}\.\d{2}\.\d{2}$/;
-  const durationCandidates = await client.getText('td[width="280"].tyyli0');
-
-  const courseDurationList = durationCandidates
-    .filter((candidate) => !!candidate.match(fullDateRangeRgx))
-    .map((duration) => {
-      const parts = duration.split('-');
-      const start = moment.utc(parts[0].trim(), 'DD.MM.YY').toISOString();
-      const end = moment.utc(parts[1].trim(), 'DD.MM.YY').toISOString();
-
-      return { start, end };
-    });
-
-  const courseDuration = courseDurationList[0];
-
-  // Add course info to data
-  data.course = {
-    ...courseData,
-    ...courseDuration,
-  };
-
   /*
    * 2) Open course's detail oodi page and scrape the events data
    */
-  const nextPageLink = '*=' + courseData.name;
+  const nextPageLink = '*=' + data.course.name;
 
   let eventsData;
   try {
@@ -221,14 +222,15 @@ function _parseCourseEvents(eventSections, locationList) {
             }
             const abbrev = locationList.shift();
             const locationParts = abbrev.split('/');
-            const locationDetails = locationMapper[locationParts[0]];
+            console.log('scraped data - event location:', locationParts);
+            const locationDetails = locationMapper[locationParts[0]] || {};
 
             courseEvent.locations.push({
               room: locationParts[0],
-              address: locationDetails.address,
-              building: locationDetails.building,
-              lat: locationDetails.lat,
-              lng: locationDetails.lng,
+              address: locationDetails.address || '',
+              building: locationDetails.building || '',
+              lat: locationDetails.lat || '',
+              lng: locationDetails.lng || '',
               abbrev,
             });
 
