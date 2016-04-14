@@ -1,5 +1,6 @@
 /* eslint-disable no-use-before-define */
 
+// TODO use import ... from ...
 const Koa = require('koa');
 const router = require('koa-router')();
 const bodyParser = require('koa-bodyparser');

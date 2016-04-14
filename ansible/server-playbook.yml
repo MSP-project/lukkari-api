@@ -10,6 +10,7 @@
     port: ''
   become: 'yes'
   become_method: 'sudo'
+  become_user: 'lukkari'
   tasks:
     - name: Update code from git
       tags: ['new_release']
@@ -91,6 +92,7 @@
     - name: Delete existing pm2 node apps
       tags: ['new_release']
       command: pm2 delete all
+      ignore_errors: yes
 
     - name: Start lukkari node app with pm2
       tags: ['new_release']

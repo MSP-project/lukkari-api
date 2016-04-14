@@ -3,16 +3,16 @@
 // import { Promise } from 'bluebird';
 
 // const _ = require('lodash');
-const moment = require('moment');
-const webdriverio = require('webdriverio');
-const locationMapper = require('../locations');
-const weekdaysMapper = require('../weekdays');
-const errorTypes = require('../errorTypes');
-const oodiSearchUrl = 'http://oodi.aalto.fi/a/opintjakstied.jsp?' +
-                      'html=1&Kieli=6&Tunniste=';
+import moment from 'moment';
+import webdriverio from 'webdriverio';
+import weekdaysMapper from '../weekdays';
+import errorTypes from '../errorTypes';
+import { locationMapper } from '../locations';
+import Boom from 'boom';
 
-// Error handling
-const Boom = require('boom');
+/* eslint-disable max-len */
+const oodiSearchUrl = 'http://oodi.aalto.fi/a/opintjakstied.jsp?html=1&Kieli=6&Tunniste=';
+/* eslint-enable max-len */
 
 const options = { desiredCapabilities: { browserName: 'phantomjs' } };
 
@@ -52,12 +52,9 @@ async function getCourse(courseCode) {
     const courseDuration = courseDurationList[0];
 
     // Add course info to data
-    data.course = {
-      ...courseData,
-      ...courseDuration,
-    };
+    data.course = { ...courseData, ...courseDuration };
   } catch (e) {
-    console.log('COURSE NOT FOUND');
+    console.log('COURSE NOT FOUND', e);
     throw Boom.notFound(errorTypes.ERROR_COURSE_NOT_FOUND);
   }
 
@@ -222,15 +219,14 @@ function _parseCourseEvents(eventSections, locationList) {
             }
             const abbrev = locationList.shift();
             const locationParts = abbrev.split('/');
-            console.log('scraped data - event location:', locationParts);
             const locationDetails = locationMapper[locationParts[0]] || {};
 
             courseEvent.locations.push({
               room: locationParts[0],
-              address: locationDetails.address || '',
-              building: locationDetails.building || '',
-              lat: locationDetails.lat || '',
-              lng: locationDetails.lng || '',
+              address: locationDetails.address || null,
+              building: locationDetails.building || null,
+              lat: locationDetails.lat || null,
+              lng: locationDetails.lng || null,
               abbrev,
             });
 
@@ -263,14 +259,14 @@ function _parseCourseEvents(eventSections, locationList) {
 
         const abbrev = locationList.shift();
         const locationParts = abbrev.split('/');
-        const locationDetails = locationMapper[locationParts[0]];
+        const locationDetails = locationMapper[locationParts[0]] || {};
 
         courseEvent.locations.push({
           room: locationParts[0],
-          address: locationDetails.address,
-          building: locationDetails.building,
-          lat: locationDetails.lat,
-          lng: locationDetails.lng,
+          address: locationDetails.address || null,
+          building: locationDetails.building || null,
+          lat: locationDetails.lat || null,
+          lng: locationDetails.lng || null,
           abbrev,
         });
       }

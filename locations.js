@@ -1,4 +1,4 @@
-export default {
+export const locationMapper = {
   'R001': {
     'building': 'Kanditalo',
     'address': 'Otakaari 1',
