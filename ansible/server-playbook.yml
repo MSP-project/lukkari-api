@@ -61,17 +61,20 @@
         creates: /usr/lib/node_modules/selenium-standalone/.selenium/selenium-server/{{server_version}}.server.jar
 
 
-    - name: Install Selenium config
-      tags: ['selenium']
-      template: src=defaults.j2 dest=/etc/default/selenium_{{sel_role}} owner=lukkari group=lukkari mode=644
-      notify: selenium_reload
+    # - name: Install Selenium config
+    #   tags: ['selenium']
+    #   template: src=defaults.j2 dest=/etc/default/selenium_{{sel_role}} owner=lukkari group=lukkari mode=644
+    #   notify: selenium_reload
 
-    - name: Install init script
-      tags: ['selenium']
-      template: src=init.j2 dest=/etc/init.d/selenium_{{sel_role}} owner=lukkari group=lukkari mode=755
-      notify: selenium_started
+    # - name: Install init script
+    #   tags: ['selenium']
+    #   template: src=init.j2 dest=/etc/init.d/selenium_{{sel_role}} owner=lukkari group=lukkari mode=755
+    #   notify: selenium_started
 
-    # ${JAVA_HOME}/bin/java -- ${JAVA_OPTS} -jar /usr/lib/node_modules/selenium-standalone/.selenium/selenium-server/{{jar_file}} ${JAR_ARGS} ${EXTRA_ARGS}  2>&1
+    - name: Install Selenium init.d script
+      tags: ['selenium']
+      template: src=init_simple.j2 dest=/etc/init.d/selenium-{{sel_role}} owner=lukkari group=lukkari mode=755
+
 
     - name: Install pm2 startup script
       command: pm2 startup debian

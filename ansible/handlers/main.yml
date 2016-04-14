@@ -7,7 +7,7 @@
 - name: selenium_started
   become: 'yes'
   become_method: 'sudo'
-  service: name=selenium_standalone state=started enabled=yes
+  service: name=selenium-standalone state=started enabled=yes
 
 - name: selenium_reload
   become: 'yes'

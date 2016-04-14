@@ -1,0 +1,15 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          selenium-standalone
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start selenium server at boot time
+# Description:       Start selenium server at boot time
+### END INIT INFO
+
+# /etc/init.d/selenium-standalone
+# update-rc.d selenium-standalone defaults
+# update-rc.d selenium-standalone remove
+selenium-standalone start >> /var/log/selenium.log &

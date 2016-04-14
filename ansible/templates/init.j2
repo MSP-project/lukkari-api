@@ -100,7 +100,7 @@ start)
                         --make-pidfile \
                         --user "${SE_USER}" \
                         --group "${SE_GROUP}" \
-                        --exec selenium-standalone start \
+                        --exec ${JAVA_HOME}/bin/java -- ${JAVA_OPTS} -jar /usr/lib/node_modules/selenium-standalone/.selenium/selenium-server/{{jar_file}} ${JAR_ARGS} ${EXTRA_ARGS}  2>&1 \
         | logger -t "${NAME}"
 ;;
 stop)
