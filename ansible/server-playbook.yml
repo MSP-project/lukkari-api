@@ -12,7 +12,7 @@
   become_method: 'sudo'
   tasks:
     - name: Update code from git
-      tags: ['api']
+      tags: ['new_release']
       git:
         repo: git@github.com:MSP-project/lukkari-api.git
         dest: /var/www/lukkari-api/
@@ -31,36 +31,24 @@
         - phantomjs
         - pm2
 
-    - name: Install initial server dependencies with npm
-      tags: ['api']
-      npm:
-        path: /var/www/lukkari-api
 
-    - name: Build production version of api code
-      tags: ['api']
-      command: npm run build:prod
-      args:
-        chdir: /var/www/lukkari-api/
-
-    - name: Copy index.js to build directory
-      tags: ['api']
-      command: cp /var/www/lukkari-api/index.production.js /var/www/_build/index.js
-
-    - name: Copy package.json to build directory
-      tags: ['api']
-      command: cp /var/www/lukkari-api/package.json /var/www/_build/
-
-    - name: Install build dependencies with npm
-      tags: ['api']
-      npm: path=/var/www/_build production=yes
-
+    # ---------------- Selenium ----------------
     - name: Install Selenium server to /usr/lib/node_modules/selenium-standalone/.selenium/selenium-server
       tags: ['selenium']
       command: selenium-standalone install --version={{server_version}} --baseURL=https://selenium-release.storage.googleapis.com
       args:
         creates: /usr/lib/node_modules/selenium-standalone/.selenium/selenium-server/{{server_version}}.server.jar
 
+    - name: Install Selenium init.d script
+      tags: ['selenium']
+      template: src=init_simple.j2 dest=/etc/init.d/selenium-{{sel_role}} owner=lukkari group=lukkari mode=755
 
+    - name: Start Selenium server
+      tags: ['selenium']
+      command: /etc/init.d/selenium-standalone &
+    # Remember to run (once) also => `$ update-rc.d selenium-standalone defaults`
+
+    # These are not relevat right now (too complex scripts for our needs)
     # - name: Install Selenium config
     #   tags: ['selenium']
     #   template: src=defaults.j2 dest=/etc/default/selenium_{{sel_role}} owner=lukkari group=lukkari mode=644
@@ -70,15 +58,41 @@
     #   tags: ['selenium']
     #   template: src=init.j2 dest=/etc/init.d/selenium_{{sel_role}} owner=lukkari group=lukkari mode=755
     #   notify: selenium_started
+    # ---------------- /Selenium ----------------
 
-    - name: Install Selenium init.d script
-      tags: ['selenium']
-      template: src=init_simple.j2 dest=/etc/init.d/selenium-{{sel_role}} owner=lukkari group=lukkari mode=755
 
+    # ---------------- Build API ----------------
+    - name: Install initial server dependencies with npm
+      tags: ['new_release']
+      npm:
+        path: /var/www/lukkari-api
+
+    - name: Build production version of api code
+      tags: ['new_release']
+      command: npm run build:prod
+      args:
+        chdir: /var/www/lukkari-api/
+
+    - name: Copy index.js to build directory
+      tags: ['new_release']
+      command: cp /var/www/lukkari-api/index.production.js /var/www/_build/index.js
+
+    - name: Copy package.json to build directory
+      tags: ['new_release']
+      command: cp /var/www/lukkari-api/package.json /var/www/_build/
+
+    - name: Install build dependencies with npm
+      tags: ['new_release']
+      npm: path=/var/www/_build production=yes
 
     - name: Install pm2 startup script
-      command: pm2 startup debian
+      command: pm2 startup debian -u lukkari
+
+    - name: Delete existing pm2 node apps
+      tags: ['new_release']
+      command: pm2 delete all
 
     - name: Start lukkari node app with pm2
-      tags: ['api']
+      tags: ['new_release']
       command: pm2 start -f /var/www/_build/index.js --name="api"
+    # ---------------- /Build api ----------------
