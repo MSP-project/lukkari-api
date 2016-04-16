@@ -31,13 +31,17 @@ async function getCourse(courseCode) {
 
   try {
     const tableTitles = await client.init().url(url).getText('.tauluotsikko');
-
     // first title is eg. ME-E4300 Semantic Web, 5 cr
     const courseData = _parseCourseName(tableTitles[0]);
 
     // eg. 13.01.16 -07.04.16
     const fullDateRangeRgx = /^\d{2}\.\d{2}\.\d{2}\s-\d{2}\.\d{2}\.\d{2}$/;
-    const durationCandidates = await client.getText('td[width="280"].tyyli0');
+    var durationCandidates = await client.getText('td[width="280"].tyyli0');
+
+    // If only a single candidate is found, make it a list too
+    if (typeof durationCandidates === 'string') {
+      durationCandidates = [ durationCandidates ];
+    }
 
     const courseDurationList = durationCandidates
       .filter((candidate) => !!candidate.match(fullDateRangeRgx))
