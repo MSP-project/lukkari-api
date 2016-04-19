@@ -83,15 +83,8 @@ async function getCourseNew(courseCode) {
    */
 
   // Find
-  console.log('LLLLLLLL', data.course);
   const eventLink = $(`td.tyyli0 > a[href*='${courseCode}']`).filter(
-    (i, el) => {
-      console.log('=========');
-      console.log($(el).text());
-      console.log(data.course.name);
-      console.log('=========');
-      return $(el).text().trim() === data.course.name;
-    }
+    (i, el) => $(el).text().trim() === data.course.name
   ).first().attr('href');
 
   const nextPageLink = `http://oodi.aalto.fi${eventLink}`;

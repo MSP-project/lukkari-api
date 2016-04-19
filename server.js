@@ -101,10 +101,12 @@ async function _getCourseByCode(courseCode) {
   console.log(`==> search course from db with code ${courseCode}`);
 
   const now = moment().utc().toISOString();
-  const data = await courses.findOne({
-    'course.code': courseCode,
-    'course.end': { $gt: now }, // we want only active courses
-  });
+  // const data = await courses.findOne({
+  //   'course.code': courseCode,
+  //   'course.end': { $gt: now }, // we want only active courses
+  // });
+
+  const data = null;
 
   if (data) {
     console.log('==> found from db:', data.course);
