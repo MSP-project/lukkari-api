@@ -119,7 +119,8 @@ async function _getCourseByCode(courseCode) {
   console.log('==> course not found in db -> scrape from Oodi');
 
   try {
-    const scrapedData = await aaltoApi.getCourse(courseCode);
+    // const scrapedData = await aaltoApi.getCourse(courseCode);
+    const scrapedData = await aaltoApi.getCourseNew(courseCode);
 
     console.log('==> scraped the data from oodi:', scrapedData.course);
 
@@ -308,28 +309,28 @@ async function loginUser(ctx) {
  *********************************************************** */
 
 /* eslint-disable camelcase */
-const child_process = require('child_process');
+// const child_process = require('child_process');
 /* eslint-enable camelcase */
 
-function startUpdateCourseWorker(courseCode) {
-  // TODO change the path to updateCourse.js based on DEV / PROD version
-  const worker = child_process.spawn(
-    'node',
-    ['/var/www/_build/updateCourse.js', courseCode]
-  );
-
-  worker.stdout.on('data', (data) => {
-    console.log('Worker stdout: ' + data);
-  });
-
-  worker.stderr.on('data', (data) => {
-    console.log('Worker stderr: ' + data);
-  });
-
-  worker.on('close', (code) => {
-    console.log('Worker exited with code ' + code);
-  });
-}
+// function startUpdateCourseWorker(courseCode) {
+//   // TODO change the path to updateCourse.js based on DEV / PROD version
+//   const worker = child_process.spawn(
+//     'node',
+//     ['/var/www/_build/updateCourse.js', courseCode]
+//   );
+//
+//   worker.stdout.on('data', (data) => {
+//     console.log('Worker stdout: ' + data);
+//   });
+//
+//   worker.stderr.on('data', (data) => {
+//     console.log('Worker stderr: ' + data);
+//   });
+//
+//   worker.on('close', (code) => {
+//     console.log('Worker exited with code ' + code);
+//   });
+// }
 
 
 // Start the server
