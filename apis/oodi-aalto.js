@@ -303,7 +303,7 @@ function _parseCourseName(courseInfo) {
   const code = foo.shift().replace(/\s/g, '');
 
   let name;
-  if (parts.length > 3) {
+  if (parts.length) {
     name = `${foo.join(' ')},${parts.join(',')}`;
   } else {
     name = `${foo.join(' ')}`;
