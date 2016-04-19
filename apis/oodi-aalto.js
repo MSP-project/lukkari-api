@@ -83,9 +83,13 @@ async function getCourseNew(courseCode) {
    */
 
   // Find
-  const eventLink = $(`a[href*='${courseCode}']`).filter(
+  console.log('LLLLLLLL', data.course);
+  const eventLink = $(`td.tyyli0 > a[href*='${courseCode}']`).filter(
     (i, el) => {
+      console.log('=========');
       console.log($(el).text());
+      console.log(data.course.name);
+      console.log('=========');
       return $(el).text().trim() === data.course.name;
     }
   ).first().attr('href');
@@ -113,6 +117,9 @@ async function getCourseNew(courseCode) {
       .get();
 
     const uniqScraped = _.uniq(scraped);
+    console.log('**********');
+    console.log(uniqScraped);
+    console.log('**********');
 
     const eventsData = [];
 
@@ -291,10 +298,16 @@ function _parseCourseName(courseInfo) {
 
   if (parts.length === 1) return null;
 
-  const credits = parts.pop().trim();
-  const parts2 = parts[0].split(' ');
-  const code = parts2.shift();
-  const name = parts2.join(' ').trim();
+  const foo = parts.shift().replace(/\s/g, '#').split('#');
+  const credits = parts.pop().replace(/\s/g, '');
+  const code = foo.shift().replace(/\s/g, '');
+
+  let name;
+  if (parts.length > 3) {
+    name = `${foo.join(' ')},${parts.join(',')}`;
+  } else {
+    name = `${foo.join(' ')}`;
+  }
 
   return { code, name, credits };
 }
