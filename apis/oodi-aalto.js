@@ -89,8 +89,22 @@ async function getCourseNew(courseCode) {
   const linkRgx = new RegExp(linkPattern, 'g');
 
   // Find the correct link to course's info page
+
+  /* NOTE: these links have some variations which is why we need to check
+   * for different types of links
+   */
   const eventLink = $(`td.tyyli0 > a[href*='${courseCode}']`).filter(
-    (i, el) => linkRgx.test( $(el).attr('href') )
+    (i, el) => {
+      // 1) Check course name match
+      if ($(el).text().trim().indexOf(data.course.name) !== -1) {
+        return true;
+      // 2) That the link matches
+      } else if (linkRgx.test( $(el).attr('href') ) &&
+                 $(el).text().indexOf('Register') === -1) {
+        return true;
+      }
+      return false;
+    }
   ).first().attr('href');
 
   // OLD WAY
@@ -105,6 +119,8 @@ async function getCourseNew(courseCode) {
 
   const nextPageLink = `http://oodi.aalto.fi${eventLink}`;
 
+  console.log('===> nextPageLink', nextPageLink);
+
   const mainPageData = await fetch(`${nextPageLink}`);
   const mainHtml = await mainPageData.text();
 
@@ -116,14 +132,19 @@ async function getCourseNew(courseCode) {
 
   // let eventsData;
   try {
-    const pattern = `Course|Lecture|Exercises|Midtermexam|${data.course.name}`;
-    const re = new RegExp(pattern);
+    /* eslint-disable max-len */
+    // const pattern = `Course|Lecture|Exercises|Midtermexam|${data.course.name}`;
+    // const re = new RegExp(pattern);
+
 
     const scraped = $(`table[width='100%'][border='0']`)
+      .filter((i, el) => $(el).parent().attr('width') !== '36%')
       .map((i, el) => $(el).text().trim())
-      .filter((i, el) => re.test(el))
+      // .filter((i, el) => re.test(el)) WE MIGHT NO EVEN NEED THIS?
       .filter((i, el) => el.indexOf('Teaching event') === -1)
       .get();
+
+    /* eslint-enable max-len */
 
     const uniqScraped = _.uniq(scraped);
     console.log('**********');
@@ -135,14 +156,18 @@ async function getCourseNew(courseCode) {
     let isLecture = false;
     let isExercise = false;
     let isMidterm = false;
+    let hasLectures = false;
     let hasExtraCourseInfo = false;
+    let courseExtraDetails;
 
     uniqScraped.forEach((e) => {
       if (e.indexOf('Course') !== -1) {
         hasExtraCourseInfo = true;
+        return;
       }
       if (e.indexOf('Lecture') !== -1) {
         isLecture = true;
+        hasLectures = true;
         isExercise = false;
         isMidterm = false;
         return;
@@ -160,17 +185,24 @@ async function getCourseNew(courseCode) {
         return;
       }
 
-      const pure = e.replace(/ /g, '').replace(/(\n)+/g, '#');
+      const pure = e
+        .replace(/ /g, '')
+        .replace(/(\n)+/g, '#');
 
       if (isLecture) eventsData.push({ type: 'lecture', data: pure });
       if (isExercise) eventsData.push({ type: 'exercise', data: pure });
       if (isMidterm) eventsData.push({ type: 'midtermexam', data: pure });
-
-      // Some courses put their lecture info in the "Course" section
-      if (hasExtraCourseInfo && !isLecture) {
-        eventsData.push({ type: 'lecture', data: pure });
+      if (hasExtraCourseInfo) {
+        courseExtraDetails = { type: 'lecture', data: pure };
       }
     });
+
+    // Some courses put their lecture info in the "Course" section
+    if (hasExtraCourseInfo && !hasLectures) eventsData.push(courseExtraDetails);
+
+    console.log(':::::::::');
+    console.log(eventsData);
+    console.log(':::::::::');
 
     let locationsData =
       $(`td[width='36%'] input.submit2[name*='LINKOPETPAIK_']`)
@@ -316,15 +348,15 @@ function _parseCourseName(courseInfo) {
 
   if (parts.length === 1) return null;
 
-  const foo = parts.shift().replace(/\s/g, '#').split('#');
+  const parts2 = parts.shift().replace(/\s/g, '#').split('#');
   const credits = parts.pop().replace(/\s/g, '');
-  const code = foo.shift().replace(/\s/g, '');
+  const code = parts2.shift().replace(/\s/g, '');
 
   let name;
   if (parts.length) {
-    name = `${foo.join(' ')},${parts.join(',')}`;
+    name = `${parts2.join(' ')},${parts.join(',')}`;
   } else {
-    name = `${foo.join(' ')}`;
+    name = `${parts2.join(' ')}`;
   }
 
   return { code, name, credits };
@@ -337,16 +369,16 @@ function _createSubEvents(ddmmyyStart, ddmmyyEnd) {
   const end = moment(ddmmyyEnd, 'DDMMYY');
 
   while (start.isBefore(end)) {
-    subEvents.push({ id: null, date: start.format('MM-DD-YYYY') });
+    subEvents.push({ date: start.format('MM-DD-YYYY') });
     start.add(7, 'days');
   }
-  subEvents.push({ id: null, date: end.format('MM-DD-YYYY') });
+  subEvents.push({ date: end.format('MM-DD-YYYY') });
   return subEvents;
 }
 
 
 function _parseCourseEventsNew(eventSection, locationList, separator) {
-  console.log(eventSection);
+  console.log('eventSection', eventSection);
   const courseEvents = [];
 
   const splittedData = eventSection.data.split(separator);
@@ -383,15 +415,10 @@ function _parseCourseEventsNew(eventSection, locationList, separator) {
       const subEvents = _createSubEvents(ddmmyyStart, ddmmyyEnd);
       courseEvent.subEvents = subEvents;
     } else if (!!dataPiece.trim().match(dateSingleRgx)) {
-      courseEvent.subEvents.push(
-        { date: dataPiece }
-      );
-      // courseEvent.startDate = dataPiece;
-      // courseEvent.endDate = dataPiece;
+      courseEvent.subEvents.push( { date: dataPiece } );
     } else {
       isEvent = false;
     }
-    console.log(courseEvent);
 
     // Test if event has time => eg. "thu 13.15-15.00"
     if (isEvent && splittedData.length - 1 >= idx + 1) {
@@ -525,10 +552,8 @@ function _parseCourseEvents(eventSections, locationList, separator) {
         courseEvent.subEvents = subEvents;
       } else if (!!dataPiece.match(dateSingleRgx)) {
         courseEvent.subEvents.push(
-          { id: null, date: dataPiece }
+          { date: dataPiece }
         );
-        // courseEvent.startDate = dataPiece;
-        // courseEvent.endDate = dataPiece;
       } else {
         isEvent = false;
       }
