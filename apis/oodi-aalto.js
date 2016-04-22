@@ -48,6 +48,9 @@ async function getCourseNew(courseCode) {
 
     // first title is eg. ME-E4300 Semantic Web, 5 cr
     const courseData = _parseCourseName(tableTitles[0]);
+    console.log('_______');
+    console.log(courseData);
+    console.log('_______');
 
     // eg. 13.01.16 -07.04.16
     const fullDateRangeRgx = /^\d{2}\.\d{2}\.\d{2}\s-\d{2}\.\d{2}\.\d{2}$/;
@@ -82,10 +85,15 @@ async function getCourseNew(courseCode) {
    * 2) Open course's detail oodi page and scrape the events data
    */
 
-  // Find
+  // Find the correct link to course's info page
   const eventLink = $(`td.tyyli0 > a[href*='${courseCode}']`).filter(
-    (i, el) => $(el).text().trim() === data.course.name
+    (i, el) => $(el).text().trim().indexOf(data.course.name) !== -1
   ).first().attr('href');
+
+  if (!eventLink) {
+    console.log(`Could not parse course's info page link`);
+    throw Boom.badData(`Could not parse course's info page link`);
+  }
 
   const nextPageLink = `http://oodi.aalto.fi${eventLink}`;
 
@@ -100,7 +108,7 @@ async function getCourseNew(courseCode) {
 
   // let eventsData;
   try {
-    const pattern = `Lecture|Exercises|Midtermexam|${data.course.name}`;
+    const pattern = `Course|Lecture|Exercises|Midtermexam|${data.course.name}`;
     const re = new RegExp(pattern);
 
     const scraped = $(`table[width='100%'][border='0']`)
@@ -119,8 +127,12 @@ async function getCourseNew(courseCode) {
     let isLecture = false;
     let isExercise = false;
     let isMidterm = false;
+    let hasExtraCourseInfo = false;
 
     uniqScraped.forEach((e) => {
+      if (e.indexOf('Course') !== -1) {
+        hasExtraCourseInfo = true;
+      }
       if (e.indexOf('Lecture') !== -1) {
         isLecture = true;
         isExercise = false;
@@ -145,6 +157,11 @@ async function getCourseNew(courseCode) {
       if (isLecture) eventsData.push({ type: 'lecture', data: pure });
       if (isExercise) eventsData.push({ type: 'exercise', data: pure });
       if (isMidterm) eventsData.push({ type: 'midtermexam', data: pure });
+
+      // Some courses put their lecture info in the "Course" section
+      if (hasExtraCourseInfo && !isLecture) {
+        eventsData.push({ type: 'lecture', data: pure });
+      }
     });
 
     let locationsData =
