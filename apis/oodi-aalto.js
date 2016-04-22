@@ -85,10 +85,18 @@ async function getCourseNew(courseCode) {
    * 2) Open course's detail oodi page and scrape the events data
    */
 
+  const linkPattern = `(\/a\/opettaptied\.jsp|Tunniste=${data.course.code})`;
+  const linkRgx = new RegExp(linkPattern, 'g');
+
   // Find the correct link to course's info page
   const eventLink = $(`td.tyyli0 > a[href*='${courseCode}']`).filter(
-    (i, el) => $(el).text().trim().indexOf(data.course.name) !== -1
+    (i, el) => linkRgx.test( $(el).attr('href') )
   ).first().attr('href');
+
+  // OLD WAY
+  // const eventLink = $(`td.tyyli0 > a[href*='${courseCode}']`).filter(
+  //   (i, el) => $(el).text().trim().indexOf(data.course.name) !== -1
+  // ).first().attr('href');
 
   if (!eventLink) {
     console.log(`Could not parse course's info page link`);
