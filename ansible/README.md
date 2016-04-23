@@ -1,5 +1,9 @@
 # Lukkari-api Ansible scripts
 
+## New release
+```
+$ ansible-playbook main-playbook.yml -i hosts -u lukkari --tags "new_release" --ask-become-pass
+```
 
 ## Tips
 

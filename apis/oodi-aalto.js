@@ -48,9 +48,6 @@ async function getCourseNew(courseCode) {
 
     // first title is eg. ME-E4300 Semantic Web, 5 cr
     const courseData = _parseCourseName(tableTitles[0]);
-    console.log('_______');
-    console.log(courseData);
-    console.log('_______');
 
     // eg. 13.01.16 -07.04.16
     const fullDateRangeRgx = /^\d{2}\.\d{2}\.\d{2}\s-\d{2}\.\d{2}\.\d{2}$/;
@@ -147,9 +144,9 @@ async function getCourseNew(courseCode) {
     /* eslint-enable max-len */
 
     const uniqScraped = _.uniq(scraped);
-    console.log('**********');
-    console.log(uniqScraped);
-    console.log('**********');
+    // console.log('**********');
+    // console.log(uniqScraped);
+    // console.log('**********');
 
     const eventsData = [];
 
@@ -200,9 +197,9 @@ async function getCourseNew(courseCode) {
     // Some courses put their lecture info in the "Course" section
     if (hasExtraCourseInfo && !hasLectures) eventsData.push(courseExtraDetails);
 
-    console.log(':::::::::');
-    console.log(eventsData);
-    console.log(':::::::::');
+    // console.log(':::::::::');
+    // console.log(eventsData);
+    // console.log(':::::::::');
 
     let locationsData =
       $(`td[width='36%'] input.submit2[name*='LINKOPETPAIK_']`)

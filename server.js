@@ -177,6 +177,8 @@ async function getUserCourses(ctx) {
 
   const user = await users.findOne({ '_id': users.id(uid) });
 
+  if (!user) throw Boom.badData('User does not exist!');
+
   if (user.courses) {
     ctx.body = user.courses;
   } else {
