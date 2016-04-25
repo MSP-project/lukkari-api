@@ -1,3 +1,13 @@
+/*
+Lukkari App: Project work for course 
+ICS-E5040 Modern Database Systems
+Teemu Taskula, 294337
+Ville Toiviainen, 357012
+Jesse Koivukoski, 349266
+Antti Partanen, 295967
+Copyright 2016
+*/
+
 /* eslint-disable no-use-before-define */
 
 // import { Promise } from 'bluebird';
@@ -24,15 +34,13 @@ const options = { desiredCapabilities: { browserName: 'phantomjs' } };
 
 // Exposed methods
 module.exports.getCourse = getCourse;
-module.exports.getCourseNew = getCourseNew;
 
-
-async function getCourseNew(courseCode) {
+async function getCourse(courseCode) {
   const data = {};
   const pageData = await fetch(`${oodiSearchUrl}${courseCode}`);
   const html = await pageData.text();
 
-  // Load html to cheerio fro scraping
+  // Load html to cheerio for scraping
   let $ = cheerio.load(html, {
     lowerCaseTags: true,
     normalizeWhitespace: true,
@@ -127,7 +135,6 @@ async function getCourseNew(courseCode) {
     normalizeWhitespace: false,
   });
 
-  // let eventsData;
   try {
     /* eslint-disable max-len */
     // const pattern = `Course|Lecture|Exercises|Midtermexam|${data.course.name}`;
@@ -143,10 +150,6 @@ async function getCourseNew(courseCode) {
     /* eslint-enable max-len */
 
     const uniqScraped = _.uniq(scraped);
-    // console.log('**********');
-    // console.log(uniqScraped);
-    // console.log('**********');
-
     const eventsData = [];
 
     // Different known event types. Not necessarily complete.
@@ -213,7 +216,7 @@ async function getCourseNew(courseCode) {
       : [locationsData];
 
     const separator = '#';
-    const courseEventsLists = eventsData.map((e) => _parseCourseEventsNew(
+    const courseEventsLists = eventsData.map((e) => _parseCourseEvents(
       e, locationsData, separator
     ));
 
@@ -224,7 +227,7 @@ async function getCourseNew(courseCode) {
       throw Boom.notFound(errorTypes.COURSE_EVENTS_NOT_PARSED);
     }
 
-    // Add courses events info to data
+    // Add course's events info to data
     data.events = courseEvents;
 
     return data;
@@ -233,105 +236,6 @@ async function getCourseNew(courseCode) {
     throw Boom.notFound(errorTypes.COURSE_HAS_NO_TEACHING);
   }
 }
-
-
-async function getCourse(courseCode) {
-  const client = webdriverio.remote(options);
-  const url = oodiSearchUrl + courseCode;
-  const data = {};
-
-  /*
-   * 1) Open course's oodi page and scrape the table titles
-   */
-  try {
-    const tableTitles = await client.init().url(url).getText('.tauluotsikko');
-
-    // first title is eg. ME-E4300 Semantic Web, 5 cr
-    const courseData = _parseCourseName(tableTitles[0]);
-
-    // eg. 13.01.16 -07.04.16
-    const fullDateRangeRgx = /^\d{2}\.\d{2}\.\d{2}\s-\d{2}\.\d{2}\.\d{2}$/;
-    let durationCandidates = await client.getText('td[width="280"].tyyli0');
-
-    // If only a single candidate is found, make it a list too
-    if (typeof durationCandidates === 'string') {
-      durationCandidates = [ durationCandidates ];
-    }
-
-    const courseDurationList = durationCandidates
-      .filter((candidate) => !!candidate.match(fullDateRangeRgx))
-      .map((duration) => {
-        const parts = duration.split('-');
-        const start = moment.utc(parts[0].trim(), 'DD.MM.YY').toISOString();
-        const end = moment.utc(parts[1].trim(), 'DD.MM.YY').toISOString();
-
-        return { start, end };
-      });
-
-    const courseDuration = courseDurationList[0];
-
-    // Add course info to data
-    data.course = { ...courseData, ...courseDuration };
-  } catch (e) {
-    console.log('COURSE NOT FOUND', e);
-    throw Boom.notFound(errorTypes.COURSE_NOT_FOUND);
-  }
-
-  /*
-   * 2) Open course's detail oodi page and scrape the events data
-   */
-  const nextPageLink = '*=' + data.course.name;
-
-  let eventsData;
-  try {
-    eventsData = await client.click(nextPageLink).getText('table.kll');
-  } catch (e) {
-    console.log('No current/future teaching');
-    throw Boom.notFound(errorTypes.COURSE_HAS_NO_TEACHING);
-  }
-
-  let locationsData = await client.getValue('td[width="36%"] input.submit2');
-
-  /*
-   * NOTE: if event does not have a location specified => it is impossible to
-   * attach the location info correctly to an event since eventsData and
-   * locationsData need to have same length (indexes match)
-   */
-
-  if (!eventsData) {
-    console.log('COURSE EVENTS NOT FOUND');
-    throw Boom.notFound(errorTypes.COURSE_EVENTS_NOT_FOUND);
-  }
-
-  if (!locationsData) {
-    console.log('COURSE EVENTS LOCATIONS NOT FOUND');
-    throw Boom.notFound(errorTypes.COURSE_EVENTS_LOCATION_NOT_FOUND);
-  }
-
-  // Events and locations data needs to be an array for the parser
-  eventsData = Array.isArray(eventsData)
-    ? eventsData
-    : [eventsData];
-
-  locationsData = Array.isArray(locationsData)
-    ? locationsData
-    : [locationsData];
-
-
-  const separator = '\n';
-  const courseEvents = _parseCourseEvents(eventsData, locationsData, separator);
-
-  if (!courseEvents) {
-    console.log('UNABLE TO PARSE COURSE EVENTS/LOCATIONS');
-    throw Boom.notFound(errorTypes.COURSE_EVENTS_NOT_PARSED);
-  }
-
-  // Add courses events info to data
-  data.events = courseEvents;
-
-  return data;
-}
-
 
 /* ***** Own methods ************************ */
 function _parseCourseName(courseInfo) {
@@ -368,7 +272,7 @@ function _createSubEvents(ddmmyyStart, ddmmyyEnd) {
 }
 
 
-function _parseCourseEventsNew(eventSection, locationList, separator) {
+function _parseCourseEvents(eventSection, locationList, separator) {
   console.log('eventSection', eventSection);
   const courseEvents = [];
 
@@ -494,145 +398,6 @@ function _parseCourseEventsNew(eventSection, locationList, separator) {
     if (isEvent) {
       courseEvents.push(courseEvent);
     }
-  });
-
-  return courseEvents;
-}
-
-
-function _parseCourseEvents(eventSections, locationList, separator) {
-  const courseEvents = [];
-
-  eventSections.forEach((eventSection) => {
-    const splittedData = eventSection.split(separator);
-
-    // eg. "midtermexam" or "exercise"
-    const courseEventType = splittedData[1]
-    .toLowerCase()
-    .replace(/ /g, '')
-    .replace(/teacher/g, '')
-    .replace(/exercises/g, 'exercise');
-
-    const dateRangeRgx = /^\d{2}\.\d{2}\.-\d{2}\.\d{2}\.\d{2}$/;
-    const dateSingleRgx = /^\d{2}\.\d{2}\.\d{2}(?! klo)$/;
-    /* eslint-disable max-len*/
-    const timeRgx = /^(?:mon|tue|wed|thu|fri|sat|sun) \d{2}\.\d{2}-\d{2}\.\d{2}$/;
-    /* eslint-enable max-len*/
-
-    splittedData.forEach((dataPiece, idx) => {
-      let isEvent = true;
-
-      // Init new event
-      const courseEvent = { type: courseEventType };
-
-      /*
-       * Test if event has single or ranged date
-       * => eg. "07.01.-11.02.16" or "11.02.16"
-       */
-
-      // TODO: create subEvents!!!
-      // TODO: add label for event
-      courseEvent.subEvents = [];
-      if (!!dataPiece.match(dateRangeRgx)) {
-        const parts = dataPiece.split('-');
-        const ddmmyyEnd = parts[1];
-        const ddmmyyStartParts = parts[0].split('.');
-        const ddmmyyEndParts = parts[1].split('.');
-
-        const ddmmyyStart = !!ddmmyyStartParts[2]
-          ? ddmmyyStartParts.join('.')
-          : ddmmyyStartParts.join('.') + ddmmyyEndParts[2];
-
-        const subEvents = _createSubEvents(ddmmyyStart, ddmmyyEnd);
-        courseEvent.subEvents = subEvents;
-      } else if (!!dataPiece.match(dateSingleRgx)) {
-        courseEvent.subEvents.push(
-          { date: dataPiece }
-        );
-      } else {
-        isEvent = false;
-      }
-
-      // Test if event has time => eg. "thu 13.15-15.00"
-      if (isEvent && splittedData.length - 1 >= idx + 1) {
-        if (courseEventType === 'midtermexam') {
-          courseEvent.locations = [];
-          let cursor = idx + 1;
-          let setTime = true;
-
-          while (!!splittedData[cursor].trim().match(timeRgx)) {
-            // All the times should be same so use just the first one
-            if (setTime) {
-              // TODO use moment instead
-              const day = weekdaysMapper[
-                splittedData[cursor].trim().slice(0, 3)
-              ];
-              const parts = splittedData[cursor].trim().slice(4).split('-');
-
-              courseEvent.day = day;
-              courseEvent.startTime = parts[0].replace('.', ':');
-              courseEvent.endTime = parts[1].replace('.', ':');
-
-              setTime = false;
-            }
-            const abbrev = locationList.shift();
-            const locationParts = abbrev.split('/');
-            const locationDetails = locationMapper[locationParts[0]] || {};
-
-            courseEvent.locations.push({
-              room: locationParts[0],
-              address: locationDetails.address || null,
-              building: locationDetails.building || null,
-              lat: locationDetails.lat || null,
-              lng: locationDetails.lng || null,
-              abbrev,
-            });
-
-            cursor += 1;
-          }
-        } else {
-          // The next piece contains the time info
-          const nextDataPiece = splittedData[idx + 1].trim();
-
-          if (!!nextDataPiece.match(timeRgx)) {
-            const day = weekdaysMapper[
-              nextDataPiece.slice(0, 3)
-            ];
-            const parts = nextDataPiece.slice(4).split('-');
-
-            courseEvent.day = day;
-            courseEvent.startTime = parts[0].replace('.', ':');
-            courseEvent.endTime = parts[1].replace('.', ':');
-          } else {
-            isEvent = false;
-          }
-        }
-      } else {
-        isEvent = false;
-      }
-
-      // Add location data to event
-      if (isEvent && courseEventType !== 'midtermexam' && locationList.length) {
-        courseEvent.locations = [];
-
-        const abbrev = locationList.shift();
-        const locationParts = abbrev.split('/');
-        const locationDetails = locationMapper[locationParts[0]] || {};
-
-        courseEvent.locations.push({
-          room: locationParts[0],
-          address: locationDetails.address || null,
-          building: locationDetails.building || null,
-          lat: locationDetails.lat || null,
-          lng: locationDetails.lng || null,
-          abbrev,
-        });
-      }
-
-      if (isEvent) {
-        courseEvents.push(courseEvent);
-      }
-    });
   });
 
   return courseEvents;

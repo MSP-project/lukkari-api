@@ -1,3 +1,13 @@
+/*
+Lukkari App: Project work for course 
+ICS-E5040 Modern Database Systems
+Teemu Taskula, 294337
+Ville Toiviainen, 357012
+Jesse Koivukoski, 349266
+Antti Partanen, 295967
+Copyright 2016
+*/
+
 /* eslint-disable no-use-before-define */
 
 import Koa from 'koa';
@@ -109,13 +119,10 @@ async function _getCourseByCode(courseCode) {
     'course.end': { $gt: now }, // we want only active courses
   });
 
-  //const data = null;
-
   if (data) {
     console.log('==> found from db:', data.course);
 
     // Update course data in background
-    // TODO fix the func => see comment in there
     startUpdateCourseWorker(courseCode);
 
     return data;
@@ -124,8 +131,7 @@ async function _getCourseByCode(courseCode) {
   console.log('==> course not found in db -> scrape from Oodi');
 
   try {
-    // const scrapedData = await aaltoApi.getCourse(courseCode);
-    const scrapedData = await aaltoApi.getCourseNew(courseCode);
+    const scrapedData = await aaltoApi.getCourse(courseCode);
 
     console.log('==> scraped the data from oodi:', scrapedData.course);
 

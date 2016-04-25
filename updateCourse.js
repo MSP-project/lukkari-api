@@ -13,8 +13,7 @@ const courseCode = process.argv[2];
 
 console.log(`Executing Child Process - update course ${courseCode}.`);
 
-aaltoApi.getCourseNew(courseCode).then((data) => {
-  // console.log('Child Process - scraped data:', data);
+aaltoApi.getCourse(courseCode).then((data) => {
   courses.findAndModify({
     query: { 'course.code': courseCode },
     update: data,
