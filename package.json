@@ -44,6 +44,7 @@
     "monk": "^1.0.1",
     "nodemon": "^1.9.1",
     "passport-local": "^1.0.0",
+    "path": "^0.12.7",
     "underscore": "^1.8.3",
     "webdriverio": "^3.4.0"
   }

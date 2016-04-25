@@ -329,12 +329,15 @@ async function loginUser(ctx) {
 
 /* eslint-disable camelcase */
 const child_process = require('child_process');
+const path = require('path');
 /* eslint-enable camelcase */
+
+let parentDir = path.resolve(process.cwd());
 
 function startUpdateCourseWorker(courseCode) {
   const worker = child_process.spawn(
     'node',
-    ['./updateCourse.js', courseCode]
+    [parentDir + '/updateCourse.js', courseCode]
   );
 
   worker.stdout.on('data', (data) => {
