@@ -102,19 +102,19 @@ async function _getCourseByCode(courseCode) {
   console.log(`==> search course from db with code ${courseCode}`);
 
   const now = moment().utc().toISOString();
-  // const data = await courses.findOne({
-  //   'course.code': courseCode,
-  //   'course.end': { $gt: now }, // we want only active courses
-  // });
+  const data = await courses.findOne({
+    'course.code': courseCode,
+    'course.end': { $gt: now }, // we want only active courses
+  });
 
-  const data = null;
+  //const data = null;
 
   if (data) {
     console.log('==> found from db:', data.course);
 
     // Update course data in background
     // TODO fix the func => see comment in there
-    // startUpdateCourseWorker(courseCode);
+    startUpdateCourseWorker(courseCode);
 
     return data;
   }
@@ -328,28 +328,27 @@ async function loginUser(ctx) {
  *********************************************************** */
 
 /* eslint-disable camelcase */
-// const child_process = require('child_process');
+const child_process = require('child_process');
 /* eslint-enable camelcase */
 
-// function startUpdateCourseWorker(courseCode) {
-//   // TODO change the path to updateCourse.js based on DEV / PROD version
-//   const worker = child_process.spawn(
-//     'node',
-//     ['/var/www/_build/updateCourse.js', courseCode]
-//   );
-//
-//   worker.stdout.on('data', (data) => {
-//     console.log('Worker stdout: ' + data);
-//   });
-//
-//   worker.stderr.on('data', (data) => {
-//     console.log('Worker stderr: ' + data);
-//   });
-//
-//   worker.on('close', (code) => {
-//     console.log('Worker exited with code ' + code);
-//   });
-// }
+function startUpdateCourseWorker(courseCode) {
+  const worker = child_process.spawn(
+    'node',
+    ['./updateCourse.js', courseCode]
+  );
+
+  worker.stdout.on('data', (data) => {
+    console.log('Worker stdout: ' + data);
+  });
+
+  worker.stderr.on('data', (data) => {
+    console.log('Worker stderr: ' + data);
+  });
+
+  worker.on('close', (code) => {
+    console.log('Worker exited with code ' + code);
+  });
+}
 
 
 // Start the server
