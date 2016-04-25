@@ -133,7 +133,6 @@ async function getCourseNew(courseCode) {
     // const pattern = `Course|Lecture|Exercises|Midtermexam|${data.course.name}`;
     // const re = new RegExp(pattern);
 
-
     const scraped = $(`table[width='100%'][border='0']`)
       .filter((i, el) => $(el).parent().attr('width') !== '36%')
       .map((i, el) => $(el).text().trim())
@@ -150,56 +149,50 @@ async function getCourseNew(courseCode) {
 
     const eventsData = [];
 
-    let isLecture = false;
-    let isExercise = false;
-    let isMidterm = false;
-    let hasLectures = false;
-    let hasExtraCourseInfo = false;
-    let courseExtraDetails;
+    // Different known event types. Not necessarily complete.
+    // TODO: We don't perfectly parse the dates for each of these e.g.
+    // self studying or seminar as they often omit weekdays from their date
+    const eventTypes = ['Lecture', 'Exercises', 'Midtermexam', 'Seminar',
+                        'Multiform teaching', 'Self studying', 'Course'];
+    const databaseTranslation = {'Lecture': 'lecture', 'Exercises': 'exercise',
+                                 'Midtermexam': 'midtermexam', 'Seminar': 'seminar',
+                                 'Multiform teaching': 'multiformteaching',
+                                 'Self studying': 'selfstudying'};
 
+    let currentEventType = null;
+    let hasLectures = false;
+
+    // Check if there are no lectures on this course
     uniqScraped.forEach((e) => {
-      if (e.indexOf('Course') !== -1) {
-        hasExtraCourseInfo = true;
-        return;
-      }
-      if (e.indexOf('Lecture') !== -1) {
-        isLecture = true;
-        hasLectures = true;
-        isExercise = false;
-        isMidterm = false;
-        return;
-      }
-      if (e.indexOf('Exercises') !== -1) {
-        isLecture = false;
-        isExercise = true;
-        isMidterm = false;
-        return;
-      }
-      if (e.indexOf('Midtermexam') !== -1) {
-        isLecture = false;
-        isExercise = false;
-        isMidterm = true;
-        return;
-      }
+      if (e.indexOf('Lecture') !== -1) { hasLectures = true; return; }
+    });
+
+    // Loop through the data while maintaining the event type
+    uniqScraped.forEach((e) => {
+
+      eventTypes.forEach((t) => {
+        if (e.indexOf(t) !== -1) {
+          currentEventType = t;
+          return;
+        }
+      });
 
       const pure = e
         .replace(/ /g, '')
         .replace(/(\n)+/g, '#');
 
-      if (isLecture) eventsData.push({ type: 'lecture', data: pure });
-      if (isExercise) eventsData.push({ type: 'exercise', data: pure });
-      if (isMidterm) eventsData.push({ type: 'midtermexam', data: pure });
-      if (hasExtraCourseInfo) {
-        courseExtraDetails = { type: 'lecture', data: pure };
+      // Exception for courses where the lecture data is under the header 'Course'
+      // TODO: So far we don't know how to parse the date data from this kind of
+      // events as it's not usually in the same date format as lectures etc.
+      // See ELO-E1504
+      if (currentEventType === 'Course' && !hasLectures) {
+        eventsData.push({ type: 'lecture', data: pure });
+        return;
       }
+
+      if (currentEventType) eventsData.push({ type: databaseTranslation[currentEventType], data: pure });
     });
 
-    // Some courses put their lecture info in the "Course" section
-    if (hasExtraCourseInfo && !hasLectures) eventsData.push(courseExtraDetails);
-
-    // console.log(':::::::::');
-    // console.log(eventsData);
-    // console.log(':::::::::');
 
     let locationsData =
       $(`td[width='36%'] input.submit2[name*='LINKOPETPAIK_']`)
@@ -252,6 +245,7 @@ async function getCourse(courseCode) {
    */
   try {
     const tableTitles = await client.init().url(url).getText('.tauluotsikko');
+
     // first title is eg. ME-E4300 Semantic Web, 5 cr
     const courseData = _parseCourseName(tableTitles[0]);
 
