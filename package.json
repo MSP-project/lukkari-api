@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "start": "nodemon ./index.js",
-    "build:prod": "NODE_ENV=production babel -d ../_build --ignore node_modules ."
+    "build:prod": "NODE_ENV=production babel -d ../_build --ignore node_modules .",
+    "compile:updater": "NODE_ENV=production babel updateCourse.js"
   },
   "devDependencies": {
     "babel-cli": "^6.7.5",

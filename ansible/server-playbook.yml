@@ -80,6 +80,10 @@
       tags: ['new_release']
       command: cp /var/www/lukkari-api/index.production.js /var/www/_build/index.js
 
+    - name: Copy .env file to _build
+      tags: ['new_release']
+      command: cp /var/www/lukkari-api/.env /var/www/_build/
+
     - name: Copy package.json to build directory
       tags: ['new_release']
       command: cp /var/www/lukkari-api/package.json /var/www/_build/
@@ -87,6 +91,12 @@
     - name: Install build dependencies with npm
       tags: ['new_release']
       npm: path=/var/www/_build production=yes
+
+    - name: Build compile the updater to ES5
+      tags: ['new_release']
+      command: npm run compile:updater
+      args:
+        chdir: /var/www/_build/
 
     - name: Install pm2 startup script
       command: pm2 startup debian -u lukkari
