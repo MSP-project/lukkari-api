@@ -7,6 +7,9 @@ import moment from 'moment';
 import config from './config';
 import koaRouter from 'koa-router';
 
+// Environment variables for production and development
+require('dotenv').config();
+
 // Set locale => for finnish weekdays etc.
 moment.locale('fi');
 
@@ -333,11 +336,17 @@ const path = require('path');
 /* eslint-enable camelcase */
 
 let parentDir = path.resolve(process.cwd());
+let fullPath;
+if (process.env.MODE === 'production') {
+  fullPath = '/var/www/_build/updateCourse.js';
+} else {
+  fullPath = parentDir + '/updateCourse.js';
+}
 
 function startUpdateCourseWorker(courseCode) {
   const worker = child_process.spawn(
     'node',
-    [parentDir + '/updateCourse.js', courseCode]
+    [fullPath, courseCode]
   );
 
   worker.stdout.on('data', (data) => {
