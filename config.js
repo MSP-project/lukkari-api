@@ -1,1 +1,5 @@
-export const appSecret = 'lukkari-super-secret-key';
+const config = {};
+
+config.appSecret = 'lukkari-super-secret-key';
+
+export default config;

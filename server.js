@@ -1,26 +1,24 @@
 /* eslint-disable no-use-before-define */
 
-// TODO use import ... from ...
-const Koa = require('koa');
-const router = require('koa-router')();
-const bodyParser = require('koa-bodyparser');
-const jwt = require('koa-jwt');
-const moment = require('moment');
-const config = require('./config');
-// const jwt = require('koa-jwt');
+import Koa from 'koa';
+import bodyParser from 'koa-bodyparser';
+import jwt from 'koa-jwt';
+import moment from 'moment';
+import config from './config';
+import koaRouter from 'koa-router';
 
 // Set locale => for finnish weekdays etc.
 moment.locale('fi');
 
 // Error handling
-const Boom = require('boom');
-const errorTypes = require('./errorTypes');
+import Boom from 'boom';
+import errorTypes from './errorTypes';
 
 // APIs
-const aaltoApi = require('./apis/oodi-aalto');
+import aaltoApi from './apis/oodi-aalto';
 
-// db
-const monk = require('monk');
+// DB
+import monk from 'monk';
 const db = monk('localhost/lukkari');
 
 // Collections
@@ -30,7 +28,8 @@ const users = db.get('users');
 // Make sure that usernames are unique
 users.index('username', { unique: true });
 
-const app = module.exports = new Koa();
+const app = new Koa();
+const router = koaRouter();
 
 // For parsing request json data
 app.use(bodyParser());
@@ -281,6 +280,7 @@ async function registerUser(ctx) {
     user = await users.insert({ username, password });
   } catch (e) {
     if (e.name === 'MongoError' && e.code === 11000) {
+      console.log(';;;;;;>', errorTypes.USER_ALREADY_EXISTS);
       throw Boom.badRequest(errorTypes.USER_ALREADY_EXISTS);
     }
   }
