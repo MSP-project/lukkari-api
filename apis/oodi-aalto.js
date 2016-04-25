@@ -40,7 +40,7 @@ async function getCourseNew(courseCode) {
 
   if (html.indexOf('No teaching') !== -1) {
     console.log('No current/future teaching');
-    throw Boom.notFound(errorTypes.ERROR_COURSE_HAS_NO_TEACHING);
+    throw Boom.notFound(errorTypes.COURSE_HAS_NO_TEACHING);
   }
 
   try {
@@ -75,7 +75,7 @@ async function getCourseNew(courseCode) {
     data.course = { ...courseData, ...courseDuration };
   } catch (e) {
     console.log('COURSE NOT FOUND', e);
-    throw Boom.notFound(errorTypes.ERROR_COURSE_NOT_FOUND);
+    throw Boom.notFound(errorTypes.COURSE_NOT_FOUND);
   }
 
   /*
@@ -207,12 +207,12 @@ async function getCourseNew(courseCode) {
 
     if (!eventsData) {
       console.log('COURSE EVENTS NOT FOUND');
-      throw Boom.notFound(errorTypes.ERROR_COURSE_EVENTS_NOT_FOUND);
+      throw Boom.notFound(errorTypes.COURSE_EVENTS_NOT_FOUND);
     }
 
     if (!locationsData) {
       console.log('COURSE EVENTS LOCATIONS NOT FOUND');
-      throw Boom.notFound(errorTypes.ERROR_COURSE_EVENTS_LOCATION_NOT_FOUND);
+      throw Boom.notFound(errorTypes.COURSE_EVENTS_LOCATION_NOT_FOUND);
     }
 
     locationsData = Array.isArray(locationsData)
@@ -228,7 +228,7 @@ async function getCourseNew(courseCode) {
 
     if (!courseEvents) {
       console.log('UNABLE TO PARSE COURSE EVENTS/LOCATIONS');
-      throw Boom.notFound(errorTypes.ERROR_COURSE_EVENTS_NOT_PARSED);
+      throw Boom.notFound(errorTypes.COURSE_EVENTS_NOT_PARSED);
     }
 
     // Add courses events info to data
@@ -237,7 +237,7 @@ async function getCourseNew(courseCode) {
     return data;
   } catch (e) {
     console.log(e);
-    throw Boom.notFound(errorTypes.ERROR_COURSE_HAS_NO_TEACHING);
+    throw Boom.notFound(errorTypes.COURSE_HAS_NO_TEACHING);
   }
 }
 
@@ -280,7 +280,7 @@ async function getCourse(courseCode) {
     data.course = { ...courseData, ...courseDuration };
   } catch (e) {
     console.log('COURSE NOT FOUND', e);
-    throw Boom.notFound(errorTypes.ERROR_COURSE_NOT_FOUND);
+    throw Boom.notFound(errorTypes.COURSE_NOT_FOUND);
   }
 
   /*
@@ -293,7 +293,7 @@ async function getCourse(courseCode) {
     eventsData = await client.click(nextPageLink).getText('table.kll');
   } catch (e) {
     console.log('No current/future teaching');
-    throw Boom.notFound(errorTypes.ERROR_COURSE_HAS_NO_TEACHING);
+    throw Boom.notFound(errorTypes.COURSE_HAS_NO_TEACHING);
   }
 
   let locationsData = await client.getValue('td[width="36%"] input.submit2');
@@ -306,12 +306,12 @@ async function getCourse(courseCode) {
 
   if (!eventsData) {
     console.log('COURSE EVENTS NOT FOUND');
-    throw Boom.notFound(errorTypes.ERROR_COURSE_EVENTS_NOT_FOUND);
+    throw Boom.notFound(errorTypes.COURSE_EVENTS_NOT_FOUND);
   }
 
   if (!locationsData) {
     console.log('COURSE EVENTS LOCATIONS NOT FOUND');
-    throw Boom.notFound(errorTypes.ERROR_COURSE_EVENTS_LOCATION_NOT_FOUND);
+    throw Boom.notFound(errorTypes.COURSE_EVENTS_LOCATION_NOT_FOUND);
   }
 
   // Events and locations data needs to be an array for the parser
@@ -329,7 +329,7 @@ async function getCourse(courseCode) {
 
   if (!courseEvents) {
     console.log('UNABLE TO PARSE COURSE EVENTS/LOCATIONS');
-    throw Boom.notFound(errorTypes.ERROR_COURSE_EVENTS_NOT_PARSED);
+    throw Boom.notFound(errorTypes.COURSE_EVENTS_NOT_PARSED);
   }
 
   // Add courses events info to data
