@@ -480,17 +480,21 @@ function _parseCourseEventsNew(eventSection, locationList, separator) {
       courseEvent.locations = [];
 
       const abbrev = locationList.shift();
-      const locationParts = abbrev.split('/');
-      const locationDetails = locationMapper[locationParts[0]] || {};
 
-      courseEvent.locations.push({
-        room: locationParts[0],
-        address: locationDetails.address || null,
-        building: locationDetails.building || null,
-        lat: locationDetails.lat || null,
-        lng: locationDetails.lng || null,
-        abbrev,
-      });
+      // If there's location data, push it
+      if (abbrev) {
+        const locationParts = abbrev.split('/');
+        const locationDetails = locationMapper[locationParts[0]] || {};
+
+        courseEvent.locations.push({
+          room: locationParts[0],
+          address: locationDetails.address || null,
+          building: locationDetails.building || null,
+          lat: locationDetails.lat || null,
+          lng: locationDetails.lng || null,
+          abbrev,
+        });
+      }
     }
 
     if (isEvent) {
