@@ -14,6 +14,7 @@ moment.locale('fi');
 
 // Error handling
 const Boom = require('boom');
+const errorTypes = require('./errorTypes');
 
 // APIs
 const aaltoApi = require('./apis/oodi-aalto');
@@ -164,7 +165,7 @@ async function getCourse(ctx) {
     if (e.isBoom) throw e;
     else {
       console.log(e);
-      throw Boom.badImplementation('Could not get the requested course');
+      throw Boom.badImplementation(errorTypes.INVALID_DATA);
     }
   }
 }
@@ -177,7 +178,7 @@ async function getUserCourses(ctx) {
 
   const user = await users.findOne({ '_id': users.id(uid) });
 
-  if (!user) throw Boom.badData('User does not exist!');
+  if (!user) throw Boom.badData(errorTypes.USER_NOT_FOUND);
 
   if (user.courses) {
     ctx.body = user.courses;
@@ -210,7 +211,14 @@ async function addUserCourse(ctx) {
   const { uid, coursecode } = ctx.params;
   console.log(`Add new course ${coursecode} for user ${uid}`);
 
-  const data = await _getCourseByCode(coursecode);
+  let data;
+  try {
+    data = await _getCourseByCode(coursecode);
+  } catch (e) {
+    if (e.isBoom) throw e;
+    throw Boom.badRequest(errorTypes.INVALID_COURSE_CODE);
+  }
+
 
   try {
     const res = await users.findAndModify(
@@ -219,13 +227,13 @@ async function addUserCourse(ctx) {
     });
 
     if (!res) {
-      throw Boom.badRequest('Could not add course to user. User not found.');
+      throw Boom.badRequest(errorTypes.USER_NOT_FOUND);
     }
 
     ctx.body = data;
   } catch (e) {
     if (e.isBoom) throw e;
-    else throw Boom.badData('Could not add course to user. Invalid data.');
+    else throw Boom.badData(errorTypes.INVALID_DATA);
   }
 }
 
@@ -235,12 +243,16 @@ async function deleteUserCourse(ctx) {
   const { uid, coursecode } = ctx.params;
   console.log(`Delete user's ${uid} course ${coursecode}`);
 
-  users.findAndModify(
-    { _id: uid },
-    { $pull: { courses: coursecode },
-  });
+  try {
+    users.findAndModify(
+      { _id: uid },
+      { $pull: { courses: coursecode },
+    });
 
-  ctx.status = 204;
+    ctx.status = 204;
+  } catch (e) {
+    throw Boom.badData(errorTypes.USER_COURSE_NOT_REMOVED);
+  }
 }
 
 
@@ -248,31 +260,30 @@ async function deleteUser(ctx) {
   // TODO: add session stuff
   const { uid } = ctx.params;
 
-  console.log(`Delete user ${uid}`);
-
-  const res = await users.remove({ '_id': users.id(uid) });
-
-  console.log(`Deleted successfully: ${!!res}`);
-
-  ctx.status = 204;
+  console.log(`Deleting user ${uid}`);
+  try {
+    const res = await users.remove({ '_id': users.id(uid) });
+    console.log(`Deleted successfully: ${!!res}`);
+    ctx.status = 204;
+  } catch (e) {
+    throw Boom.badData(errorTypes.USER_NOT_DELETED);
+  }
 }
 
 
 async function registerUser(ctx) {
   const { username, password } = ctx.request.body;
 
-  console.log(`Add new user - username: ${username}, password: ${password}`);
+  // console.log(`Add new user - username: ${username}, password: ${password}`);
 
   let user;
   try {
     user = await users.insert({ username, password });
   } catch (e) {
     if (e.name === 'MongoError' && e.code === 11000) {
-      throw Boom.badRequest('Username already exists!');
+      throw Boom.badRequest(errorTypes.USER_ALREADY_EXISTS);
     }
   }
-
-  console.log(user);
 
   if (user) {
     const token = jwt.sign(user, config.appSecret, {
@@ -282,7 +293,7 @@ async function registerUser(ctx) {
     delete user.password;   // Don't return user's password
 
     ctx.body = { token, user };
-  } else throw Boom.badImplementation('Could not add new user.');
+  } else throw Boom.badImplementation(errorTypes.USER_NOT_ADDED);
 }
 
 
@@ -294,12 +305,12 @@ async function loginUser(ctx) {
   const user = await users.findOne({ username });
 
   if (!user) {
-    throw Boom.badData('Authentication failed. User not found.');
+    throw Boom.badData(errorTypes.USER_NOT_FOUND);
   }
 
   // Check password
   if (user.password !== password) {
-    throw Boom.badData('Authentication failed. Password does not match.');
+    throw Boom.badData(errorTypes.PASSWORD_NO_MATCH);
   }
 
   const token = jwt.sign(user, config.appSecret, {
