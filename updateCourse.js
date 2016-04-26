@@ -25,7 +25,7 @@ const courses = db.get('courses');
 const courseCode = process.argv[2];
 
 console.log(`Executing Child Process - update course ${courseCode}.`);
-console.log('-> Find the course to update');
+console.log('==> Find the course to update');
 const course = courses.findOne({ 'course.code': courseCode });
 
 if (course) {
@@ -35,7 +35,7 @@ if (course) {
   const updatedLast = course.updated;
 
   if (now - updatedLast > dayInMillis) {
-    console.log(`-> Update the course`);
+    console.log(`==> Update course ${courseCode}`);
     aaltoApi.getCourse(courseCode).then((data) => {
       const updatedData = Object.assign({}, data, { updated: now } );
 
@@ -45,6 +45,7 @@ if (course) {
       });
     });
   } else {
-    console.log(`-> Dont't update the course`);
+    console.log(`==> Course has recently been updated. Dont't update course ${courseCode}`);
+    console.log(`Child Process executed - course ${courseCode} not updated.`);
   }
 }

@@ -351,6 +351,9 @@ const path = require('path');
 
 function startUpdateCourseWorker(courseCode) {
   let fullPath;
+
+  console.log('==> ENV MODE:', process.env.MODE);
+
   if (process.env.MODE === 'development') {
     const parentDir = path.resolve(process.cwd());
     fullPath = parentDir + '/updateCourse.js';
@@ -358,21 +361,26 @@ function startUpdateCourseWorker(courseCode) {
     fullPath = '/var/www/_build/updateCourse.js';
   }
 
-  const worker = child_process.spawn(
-    'node', [fullPath, courseCode]
-  );
+  console.log('==> FULL PATH to updateCourse.js', fullPath);
 
-  worker.stdout.on('data', (data) => {
-    console.log('Worker stdout: ' + data);
-  });
+  // Temporarily disable worker when developing
+  if (process.env.MODE !== 'development') {
+    const worker = child_process.spawn(
+      'node', [fullPath, courseCode]
+    );
 
-  worker.stderr.on('data', (data) => {
-    console.log('Worker stderr: ' + data);
-  });
+    worker.stdout.on('data', (data) => {
+      console.log('Worker stdout: ' + data);
+    });
 
-  worker.on('close', (code) => {
-    console.log('Worker exited with code ' + code);
-  });
+    worker.stderr.on('data', (data) => {
+      console.log('Worker stderr: ' + data);
+    });
+
+    worker.on('close', (code) => {
+      console.log('Worker exited with code ' + code);
+    });
+  }
 }
 
 
