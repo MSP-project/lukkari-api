@@ -1,66 +1,4 @@
-# LukkariApp - Server
-
-## Server
-
-Tutorials
-- https://github.com/beautifulcode/ssh-copy-id-for-OSX
-- https://www.digitalocean.com/community/tutorials/initial-server-setup-with-ubuntu-14-04
-- https://www.digitalocean.com/community/tutorials/how-to-set-up-a-node-js-application-for-production-on-ubuntu-14-04
-
-Server ip
-`146.185.150.48`
-
-## How it works
-*New user*
-- registers to Lukkari App (basic, google, twitter etc...)
-  - add new user
-- starts adding courses (taps "+" button)
-  - "Give course code" -> types: "ME-E4400"
-  - search from db
-    - if found -> add the course to the user -> update course info
-    - if not found -> scrape data from Oodi -> add to courses collection -> add course to user
-  - return course data?
-
-## Endpoints
-
-api/course/:coursecode
-=> kurssin tiedot + eventit
-
-User
-- username
-- password
-- courses (array of coursecode strings)
-
-
-Course
-- id
-- code
-- name
-- credits
-- start
-- end
-
-
-Event
-- id
-- date
-- type
-- coursecode
-- examcode
-- label = coursename + eventtype
-- day
-- startTime
-- endTime
-- locations: [
-  {
-    - abbrev
-    - room
-    - address
-    - building
-    - lat
-    - l`ng
-  }
-]
+# LukkariApi
 
 ## Requirements
 
@@ -76,44 +14,18 @@ $ npm install nodemon -g
 $ npm install
 ```
 
-Install selenium
-```
-$ npm install selenium-standalone@latest -g
-$ selenium-standalone install
-```
-
-Install PhantomJS
-```
-$ npm install -g phantomjs
-```
-=> needs to be installed globally so that Selenium finds it automatically ([tutorial](http://code.tutsplus.com/tutorials/headless-functional-testing-with-selenium-and-phantomjs--net-30545))
-
-Phantomjs is a headless browser which is used to scrape the web.
-
-Start selenium server
-```
-$ selenium-standalone start
-```
-
 Start node/koa server
 ```
 $ npm start
-```
-
-Shutting down Selenium *Ctrl+c* or
-```
-$ pkill -f selenium-standalone
 ```
 
 ## REST API
 
 Course/lecture information can be queried from
 ```
-http://localhost:8081/course/<course-identifier>
+http://localhost:8082/course/<course-identifier>
 ```
-=> try for example: MS-A0107, ME-E4300, ME-E4400
-
-**Note:** courses with loads of exercise groups will take quite a while to loads because the location information is hidden behind a link (selenium needs to visit all the location links).
+==> try for example: `MS-A0107`, `ME-E4300`, `ME-E4400`
 
 All endpoints:
 ```
@@ -124,3 +36,54 @@ GET /user/:uid/courses
 DELETE /user/:uid
 POST, DELETE /user/:uid/courses/:coursecode
 ```
+
+### Example data
+
+**/course/:coursecode**
+
+```json
+{
+  "course": {
+    "code": "ICS-E4020",
+    "name": "Programming Parallel Computers",
+    "credits": "5cr",
+    "start": "2016-04-11T00:00:00.000Z",
+    "end": "2016-05-20T00:00:00.000Z"
+  },
+  "events": [
+    {
+      "type": "exercise",
+      "subEvents": [
+        {
+          "date": "04-15-2016"
+        },
+        {
+          "date": "04-22-2016"
+        },
+      ],
+      "day": "Friday",
+      "startTime": "16:15",
+      "endTime": "18:00",
+      "locations": [
+        {
+          "room": "R017",
+          "address": "Sähkömiehentie 3",
+          "building": "Maarintalo",
+          "lat": 60.18926309999999,
+          "lng": 24.8262549,
+          "abbrev": "R017/Maari-A"
+        }
+      ]
+    }
+  ],
+  "updated": 1461679298430,
+  "_id": "...."
+}
+```
+
+
+## Server
+
+### TODO
+- Resize DO instance
+  - Use Node.js [recluster](https://github.com/doxout/recluster)
