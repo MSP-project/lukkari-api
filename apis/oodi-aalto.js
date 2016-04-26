@@ -122,7 +122,7 @@ async function getCourse(courseCode) {
 
   const nextPageLink = `http://oodi.aalto.fi${eventLink}`;
 
-  console.log('===> nextPageLink', nextPageLink);
+  // console.log('===> nextPageLink', nextPageLink);
 
   const mainPageData = await fetch(`${nextPageLink}`);
   const mainHtml = await mainPageData.text();
@@ -240,7 +240,6 @@ async function getCourse(courseCode) {
 
     return data;
   } catch (e) {
-    console.log(e);
     throw Boom.notFound(errorTypes.COURSE_HAS_NO_TEACHING);
   }
 }
@@ -281,11 +280,8 @@ function _createSubEvents(ddmmyyStart, ddmmyyEnd) {
 
 
 function _parseCourseEvents(eventSection, locationList, separator) {
-  console.log('eventSection', eventSection);
   const courseEvents = [];
-
   const splittedData = eventSection.data.split(separator);
-  console.log(splittedData);
 
   const dateRangeRgx = /^\d{2}\.\d{2}\.-\d{2}\.\d{2}\.\d{2}$/;
   const dateSingleRgx = /^\d{2}\.\d{2}\.\d{2}(?! klo)$/;

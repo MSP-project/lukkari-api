@@ -150,12 +150,14 @@ async function _getCourseByCode(courseCode) {
      * is it ok to return out-dated / irrelevant data?
      */
     // Add to db
-    const newCourse = await courses.insert(scrapedData);
+    const timestamp = new Date().getTime();
+    const newCourse = await courses.insert({
+      ...scrapedData,
+      updated: timestamp,
+    });
 
     return newCourse;
   } catch (e) {
-    console.log(e);
-
     if (e.isBoom) {
       throw e;  // just re-throw the error
     } else {

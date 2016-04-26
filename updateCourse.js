@@ -25,13 +25,26 @@ const courses = db.get('courses');
 const courseCode = process.argv[2];
 
 console.log(`Executing Child Process - update course ${courseCode}.`);
+console.log('-> Find the course to update');
+const course = courses.findOne({ 'course.code': courseCode });
 
-aaltoApi.getCourse(courseCode).then((data) => {
-  courses.findAndModify({
-    query: { 'course.code': courseCode },
-    update: data,
-  }, (err) => {
-    if (err) console.log('Error updating the course to db', err);
-    console.log(`Child Process executed - course ${courseCode} updated.`);
-  });
-});
+if (course) {
+  // Check timestamp
+  const dayInMillis = 86400000;
+  const now = new Date().getTime();
+  const updatedLast = course.updated;
+
+  if (now - updatedLast > dayInMillis) {
+    console.log(`-> Update the course`);
+    aaltoApi.getCourse(courseCode).then((data) => {
+      const updatedData = Object.assign({}, data, { updated: now } );
+
+      courses.update({ 'course.code': courseCode }, updatedData, (err) => {
+        if (err) console.log('Error updating the course to db', err);
+        console.log(`Child Process executed - course ${courseCode} updated.`);
+      });
+    });
+  } else {
+    console.log(`-> Dont't update the course`);
+  }
+}
