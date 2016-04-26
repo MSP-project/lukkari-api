@@ -343,26 +343,25 @@ async function loginUser(ctx) {
 
 /* eslint-disable camelcase */
 const child_process = require('child_process');
-const path = require('path');
 /* eslint-enable camelcase */
 
-let parentDir = path.resolve(process.cwd());
-let fullPath;
-
-console.log('ENV MODE:', process.env.MODE);
-
-if (process.env.MODE === 'production') {
-  fullPath = '/var/www/_build/updateCourse.js';
-} else {
-  fullPath = parentDir + '/updateCourse.js';
-}
-
-console.log('FULL PATH TO updateCourse.js:', fullPath);
+const path = require('path');
 
 function startUpdateCourseWorker(courseCode) {
+  console.log('===> ENV MODE:', process.env.MODE);
+
+  let fullPath;
+  if (process.env.MODE === 'development') {
+    const parentDir = path.resolve(process.cwd());
+    fullPath = parentDir + '/updateCourse.js';
+  } else {
+    fullPath = '/var/www/_build/updateCourse.js';
+  }
+
+  console.log('===> FULL PATH TO updateCourse.js:', fullPath);
+
   const worker = child_process.spawn(
-    'node',
-    [fullPath, courseCode]
+    'node', [fullPath, courseCode]
   );
 
   worker.stdout.on('data', (data) => {
