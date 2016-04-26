@@ -21,48 +21,6 @@
       with_items:
         - pm2
 
-    # OLD
-    # vars:
-    #   server_version_major: 2.53
-    #   server_version: "{{server_version_major}}.0"
-    #   jar_file: "{{server_version_major}}-server.jar"
-    #   sel_role: standalone
-    #   hub: ''
-    #   java_opts: ''
-    #   extra_args: ''
-    #   port: ''
-    # - selenium-standalone
-    # - phantomjs
-
-
-    # ---------------- Selenium ----------------
-    # - name: Install Selenium server to /usr/lib/node_modules/selenium-standalone/.selenium/selenium-server
-    #   tags: ['selenium']
-    #   command: selenium-standalone install --version={{server_version}} --baseURL=https://selenium-release.storage.googleapis.com
-    #   args:
-    #     creates: /usr/lib/node_modules/selenium-standalone/.selenium/selenium-server/{{server_version}}.server.jar
-    #
-    # - name: Install Selenium init.d script
-    #   tags: ['selenium']
-    #   template: src=init_simple.j2 dest=/etc/init.d/selenium-{{sel_role}} owner=lukkari group=lukkari mode=755
-    #
-    # - name: Start Selenium server
-    #   tags: ['selenium']
-    #   command: /etc/init.d/selenium-standalone &
-    # Remember to run (once) also => `$ update-rc.d selenium-standalone defaults`
-
-    # These are not relevat right now (too complex scripts for our needs)
-    # - name: Install Selenium config
-    #   tags: ['selenium']
-    #   template: src=defaults.j2 dest=/etc/default/selenium_{{sel_role}} owner=lukkari group=lukkari mode=644
-    #   notify: selenium_reload
-
-    # - name: Install init script
-    #   tags: ['selenium']
-    #   template: src=init.j2 dest=/etc/init.d/selenium_{{sel_role}} owner=lukkari group=lukkari mode=755
-    #   notify: selenium_started
-    # ---------------- /Selenium ----------------
-
 
     # ---------------- Build API ----------------
     - name: Install initial server dependencies with npm
@@ -75,17 +33,6 @@
       command: npm run build:prod
       args:
         chdir: /var/www/lukkari-api/
-
-    ## no need to compile since node 5.x supports many ES6 features
-    # - name: Compile the updater to ES5
-    #   tags: ['new_release']
-    #   command: npm run compile:updater
-    #   args:
-    #     chdir: /var/www/lukkari-api/
-
-    # - name: Copy updateCourse.js to build directory
-    #   tags: ['new_release']
-    #   command: cp /var/www/lukkari-api/updateCourse.js /var/www/_build/
 
     - name: Copy index.js to build directory
       tags: ['new_release']

@@ -1,20 +1,20 @@
 /*
-Lukkari App: Project work for course 
-ICS-E5040 Modern Database Systems
-Teemu Taskula, 294337
-Ville Toiviainen, 357012
-Jesse Koivukoski, 349266
-Antti Partanen, 295967
-Copyright 2016
+////////////////////////////////////////////////////////////////
+//  LUKKARI APP
+//  Project work for course ICS-E5040 Modern Database Systems
+//
+//  Teemu Taskula, 294337
+//  Ville Toiviainen, 357012
+//  Jesse Koivukoski, 349266
+//  Antti Partanen, 295967
+//
+//  Copyright 2016
+////////////////////////////////////////////////////////////////
 */
 
 /* eslint-disable no-use-before-define */
 
-// import { Promise } from 'bluebird';
-
-// const _ = require('lodash');
 import moment from 'moment';
-import webdriverio from 'webdriverio';
 import weekdaysMapper from '../weekdays';
 import errorTypes from '../errorTypes';
 import { locationMapper } from '../locations';
@@ -29,8 +29,6 @@ const cheerio = require('cheerio');
 /* eslint-disable max-len */
 const oodiSearchUrl = 'http://oodi.aalto.fi/a/opintjakstied.jsp?html=1&Kieli=6&Tunniste=';
 /* eslint-enable max-len */
-
-const options = { desiredCapabilities: { browserName: 'phantomjs' } };
 
 // Exposed methods
 module.exports.getCourse = getCourse;
@@ -155,12 +153,17 @@ async function getCourse(courseCode) {
     // Different known event types. Not necessarily complete.
     // TODO: We don't perfectly parse the dates for each of these e.g.
     // self studying or seminar as they often omit weekdays from their date
-    const eventTypes = ['Lecture', 'Exercises', 'Midtermexam', 'Seminar',
-                        'Multiform teaching', 'Self studying', 'Course'];
-    const databaseTranslation = {'Lecture': 'lecture', 'Exercises': 'exercise',
-                                 'Midtermexam': 'midtermexam', 'Seminar': 'seminar',
-                                 'Multiform teaching': 'multiformteaching',
-                                 'Self studying': 'selfstudying'};
+    const eventTypes = [
+      'Lecture', 'Exercises', 'Midtermexam', 'Seminar',
+      'Multiform teaching', 'Self studying', 'Course',
+    ];
+
+    const databaseTranslation = {
+      'Lecture': 'lecture', 'Exercises': 'exercise',
+      'Midtermexam': 'midtermexam', 'Seminar': 'seminar',
+      'Multiform teaching': 'multiformteaching',
+      'Self studying': 'selfstudying',
+    };
 
     let currentEventType = null;
     let hasLectures = false;
@@ -172,7 +175,6 @@ async function getCourse(courseCode) {
 
     // Loop through the data while maintaining the event type
     uniqScraped.forEach((e) => {
-
       eventTypes.forEach((t) => {
         if (e.indexOf(t) !== -1) {
           currentEventType = t;
@@ -184,16 +186,22 @@ async function getCourse(courseCode) {
         .replace(/ /g, '')
         .replace(/(\n)+/g, '#');
 
-      // Exception for courses where the lecture data is under the header 'Course'
-      // TODO: So far we don't know how to parse the date data from this kind of
-      // events as it's not usually in the same date format as lectures etc.
-      // See ELO-E1504
+      /* Exception for courses where the lecture data
+       * is under the header 'Course'
+       * TODO: So far we don't know how to parse the date data from this kind of
+       * events as it's not usually in the same date format as lectures etc.
+       * See ELO-E1504
+       */
       if (currentEventType === 'Course' && !hasLectures) {
         eventsData.push({ type: 'lecture', data: pure });
         return;
       }
 
-      if (currentEventType) eventsData.push({ type: databaseTranslation[currentEventType], data: pure });
+      if (currentEventType) {
+        eventsData.push(
+          { type: databaseTranslation[currentEventType], data: pure }
+        );
+      }
     });
 
 

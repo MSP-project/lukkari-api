@@ -1,3 +1,18 @@
+/*
+////////////////////////////////////////////////////////////////
+//  LUKKARI APP
+//  Project work for course ICS-E5040 Modern Database Systems
+//
+//  Teemu Taskula, 294337
+//  Ville Toiviainen, 357012
+//  Jesse Koivukoski, 349266
+//  Antti Partanen, 295967
+//
+//  Copyright 2016
+////////////////////////////////////////////////////////////////
+*/
+
+
 /* ********************************************************************
  * Child process to update course info by scraping the data from oodi
  **********************************************************************  */
