@@ -91,9 +91,9 @@
       tags: ['new_release']
       command: cp /var/www/lukkari-api/index.production.js /var/www/_build/index.js
 
-    - name: Copy .env file to _build
+    - name: Copy prod .env file to _build
       tags: ['new_release']
-      command: cp /var/www/lukkari-api/.env /var/www/_build/
+      command: cp /var/www/lukkari-api/.env-production /var/www/_build/.env
 
     - name: Copy package.json to build directory
       tags: ['new_release']

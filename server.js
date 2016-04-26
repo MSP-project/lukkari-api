@@ -257,12 +257,14 @@ async function deleteUserCourse(ctx) {
       { $pull: { courses: coursecode },
     });
 
-    deletedCourse = await _getCourseByCode(coursecode);
-
-    // Return the deleted course
-    // TODO: should we return the users remaining courses instead?
-    ctx.body = deletedCourse;
+    // Return the deleted coursecode
+    /* TODO: should we return the users remaining courses instead?
+     * or the deleted course object?
+     */
+    // const deletedCourse = await _getCourseByCode(coursecode);
+    ctx.body = coursecode;
   } catch (e) {
+    console.log('Error deleting course', e);
     throw Boom.badData(errorTypes.USER_COURSE_NOT_REMOVED);
   }
 }
@@ -293,7 +295,6 @@ async function registerUser(ctx) {
     user = await users.insert({ username, password });
   } catch (e) {
     if (e.name === 'MongoError' && e.code === 11000) {
-      console.log(';;;;;;>', errorTypes.USER_ALREADY_EXISTS);
       throw Boom.badRequest(errorTypes.USER_ALREADY_EXISTS);
     }
   }
@@ -347,11 +348,16 @@ const path = require('path');
 
 let parentDir = path.resolve(process.cwd());
 let fullPath;
+
+console.log('ENV MODE:', process.env.MODE);
+
 if (process.env.MODE === 'production') {
   fullPath = '/var/www/_build/updateCourse.js';
 } else {
   fullPath = parentDir + '/updateCourse.js';
 }
+
+console.log('FULL PATH TO updateCourse.js:', fullPath);
 
 function startUpdateCourseWorker(courseCode) {
   const worker = child_process.spawn(
