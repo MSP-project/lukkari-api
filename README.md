@@ -1,4 +1,11 @@
 # LukkariApi
+LukkariApi is a REST API that is used in [LukkariApp](https://github.com/MSP-project/lukkari-app) for getting the information about courses from Oodi by web scraping the data.     
+
+The API provides fairly good coverage for major part of the courses in Oodi, but since the course information is not always in a standard form (eg. lecture details in description section etc.) some courses cannot be scraped successfully.
+
+The end goal for this API is to use some open API provided either by MyCourses or Oodi to fetch the required data. However, currently the data fetching is done via web scraping.
+
+You can test the API locally by cloning this repo and following the next installation steps.
 
 ## Requirements
 
@@ -8,7 +15,7 @@ $ brew update
 $ brew install mongodb
 ```
 
-Install npm packages
+Install npm packages (nodemon for hot-reloading)
 ```
 $ npm install nodemon -g
 $ npm install
@@ -39,7 +46,7 @@ POST, DELETE /user/:uid/courses/:coursecode
 
 ### Example data
 
-**/course/:coursecode**
+**GET /course/:coursecode**
 
 ```json
 {
@@ -86,4 +93,6 @@ POST, DELETE /user/:uid/courses/:coursecode
 
 ### TODO
 - Resize DO instance
-  - Use Node.js [recluster](https://github.com/doxout/recluster)
+- Use Node.js [recluster](https://github.com/doxout/recluster)
+- Improve oodi-aalto parser to better deal with anomalies in Oodi's data
+- Implement oodi-hy parser for HY students ;) 
