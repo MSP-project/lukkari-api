@@ -261,8 +261,8 @@ async function deleteUserCourse(ctx) {
     /* TODO: should we return the users remaining courses instead?
      * or the deleted course object?
      */
-    // const deletedCourse = await _getCourseByCode(coursecode);
-    ctx.body = coursecode;
+    const deletedCourse = await _getCourseByCode(coursecode);
+    ctx.body = deletedCourse;
   } catch (e) {
     console.log('Error deleting course', e);
     throw Boom.badData(errorTypes.USER_COURSE_NOT_REMOVED);
