@@ -194,6 +194,8 @@ async function getUserCourses(ctx) {
 
   if (!user) throw Boom.badData(errorTypes.USER_NOT_FOUND);
 
+  console.log(`Found user with courses: ${user.courses}`);
+
   if (user.courses) {
     ctx.body = user.courses;
   } else {
@@ -223,7 +225,7 @@ async function getUserCourses(ctx) {
 async function addUserCourse(ctx) {
   // TODO: error handling
   const { uid, coursecode } = ctx.params;
-  console.log(`Add new course ${coursecode} for user ${uid}`);
+  console.log(`Adding new course ${coursecode} for user ${uid}`);
 
   let data;
   try {
@@ -243,6 +245,8 @@ async function addUserCourse(ctx) {
     if (!res) {
       throw Boom.badRequest(errorTypes.USER_NOT_FOUND);
     }
+
+    console.log(`Added course ${coursecode} for user ${uid}!`);
 
     ctx.body = data;
   } catch (e) {

@@ -47,5 +47,6 @@ if (course) {
   } else {
     console.log(`==> Course has recently been updated. Dont't update course ${courseCode}`);
     console.log(`Child Process executed - course ${courseCode} not updated.`);
+    db.close();
   }
 }
