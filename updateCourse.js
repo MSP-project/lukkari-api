@@ -1,5 +1,3 @@
-require('babel-core/register'); // to compile from ES6 -> ES5
-
 /* ********************************************************************
  * Child process to update course info by scraping the data from oodi
  **********************************************************************  */

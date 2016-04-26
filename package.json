@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nodemon ./index.js",
     "build:prod": "NODE_ENV=production babel -d ../_build --ignore node_modules .",
-    "compile:updater": "NODE_ENV=production babel updateCourse.js"
+    "compile:updater": "NODE_ENV=production babel --presets es2015-node5 updateCourse.js -o updateCourse-compiled.js"
   },
   "devDependencies": {
     "babel-cli": "^6.7.5",

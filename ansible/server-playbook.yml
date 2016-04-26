@@ -76,6 +76,17 @@
       args:
         chdir: /var/www/lukkari-api/
 
+    ## no need to compile since node 5.x supports many ES6 features
+    # - name: Compile the updater to ES5
+    #   tags: ['new_release']
+    #   command: npm run compile:updater
+    #   args:
+    #     chdir: /var/www/lukkari-api/
+
+    # - name: Copy updateCourse.js to build directory
+    #   tags: ['new_release']
+    #   command: cp /var/www/lukkari-api/updateCourse.js /var/www/_build/
+
     - name: Copy index.js to build directory
       tags: ['new_release']
       command: cp /var/www/lukkari-api/index.production.js /var/www/_build/index.js
@@ -91,12 +102,6 @@
     - name: Install build dependencies with npm
       tags: ['new_release']
       npm: path=/var/www/_build production=yes
-
-    - name: Build compile the updater to ES5
-      tags: ['new_release']
-      command: npm run compile:updater
-      args:
-        chdir: /var/www/_build/
 
     - name: Install pm2 startup script
       command: pm2 startup debian -u lukkari

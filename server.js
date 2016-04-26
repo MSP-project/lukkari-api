@@ -1,5 +1,5 @@
 /*
-Lukkari App: Project work for course 
+Lukkari App: Project work for course
 ICS-E5040 Modern Database Systems
 Teemu Taskula, 294337
 Ville Toiviainen, 357012
@@ -257,7 +257,11 @@ async function deleteUserCourse(ctx) {
       { $pull: { courses: coursecode },
     });
 
-    ctx.status = 204;
+    deletedCourse = await _getCourseByCode(coursecode);
+
+    // Return the deleted course
+    // TODO: should we return the users remaining courses instead?
+    ctx.body = deletedCourse;
   } catch (e) {
     throw Boom.badData(errorTypes.USER_COURSE_NOT_REMOVED);
   }
