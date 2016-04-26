@@ -184,7 +184,6 @@ async function getCourse(ctx) {
 }
 
 async function getUserCourses(ctx) {
-  // TODO: error handling
   const { uid } = ctx.params;
 
   console.log(`Get users ${uid} all courses.`);
@@ -252,7 +251,6 @@ async function addUserCourse(ctx) {
 
 
 async function deleteUserCourse(ctx) {
-  // TODO: implement
   const { uid, coursecode } = ctx.params;
   console.log(`Delete user's ${uid} course ${coursecode}`);
 
@@ -262,10 +260,7 @@ async function deleteUserCourse(ctx) {
       { $pull: { courses: coursecode },
     });
 
-    // Return the deleted coursecode
-    /* TODO: should we return the users remaining courses instead?
-     * or the deleted course object?
-     */
+    // TODO: should we return the users remaining courses instead?
     const deletedCourse = await _getCourseByCode(coursecode);
     ctx.body = deletedCourse;
   } catch (e) {
@@ -353,8 +348,6 @@ const child_process = require('child_process');
 const path = require('path');
 
 function startUpdateCourseWorker(courseCode) {
-  console.log('===> ENV MODE:', process.env.MODE);
-
   let fullPath;
   if (process.env.MODE === 'development') {
     const parentDir = path.resolve(process.cwd());
@@ -362,8 +355,6 @@ function startUpdateCourseWorker(courseCode) {
   } else {
     fullPath = '/var/www/_build/updateCourse.js';
   }
-
-  console.log('===> FULL PATH TO updateCourse.js:', fullPath);
 
   const worker = child_process.spawn(
     'node', [fullPath, courseCode]
